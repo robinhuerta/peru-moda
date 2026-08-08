@@ -1,6 +1,5 @@
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
-import { vendors } from '@/lib/vendors';
 import { api } from '@/lib/api';
 import ProductCard from '@/components/ProductCard';
 
@@ -12,13 +11,16 @@ type VendorStorePageProps = {
 };
 
 export default async function VendorStorePage({ params }: VendorStorePageProps) {
+  const [vendors, allProducts] = await Promise.all([
+    api.listVendors({ revalidate: 30 }),
+    api.listProducts({ revalidate: 30 }),
+  ]);
   const vendor = vendors.find((v) => v.slug === params.slug);
 
   if (!vendor) {
     notFound();
   }
 
-  const allProducts = await api.listProducts({ revalidate: 30 });
   const products = allProducts.filter((p) => p.vendorSlug === vendor.slug);
 
   return (
@@ -29,11 +31,18 @@ export default async function VendorStorePage({ params }: VendorStorePageProps) 
             <div className="relative h-64">
               <Image src={vendor.cover} alt={vendor.name} fill className="object-cover" sizes="100vw" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
-              <div className="absolute inset-x-0 bottom-0 p-10">
-                <span className="inline-flex rounded-full bg-[#d12a18]/15 px-4 py-2 text-sm uppercase tracking-[0.3em] text-[#d12a18]">
-                  Tienda
-                </span>
-                <h1 className="mt-4 text-4xl font-black tracking-tight text-white sm:text-5xl">{vendor.name}</h1>
+              <div className="absolute inset-x-0 bottom-0 flex items-end gap-4 p-10">
+                {vendor.logo && (
+                  <span className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-full border-2 border-white/80 bg-brand-900">
+                    <Image src={vendor.logo} alt={`Logo de ${vendor.name}`} fill className="object-cover" sizes="64px" />
+                  </span>
+                )}
+                <div>
+                  <span className="inline-flex rounded-full bg-[#d12a18]/15 px-4 py-2 text-sm uppercase tracking-[0.3em] text-[#d12a18]">
+                    Tienda
+                  </span>
+                  <h1 className="mt-4 text-4xl font-black tracking-tight text-white sm:text-5xl">{vendor.name}</h1>
+                </div>
               </div>
             </div>
             <div className="flex flex-col gap-4 p-10 sm:flex-row sm:items-center sm:justify-between">

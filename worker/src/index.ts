@@ -29,6 +29,10 @@ const PRODUCT_COLUMNS = [
   'vendor_slug', 'activo', 'orden',
 ];
 
+const VENDOR_COLUMNS = [
+  'name', 'slug', 'description', 'logo', 'cover', 'rating', 'sales', 'activo', 'orden',
+];
+
 const JSON_FIELDS = new Set(['images']);
 
 function rowOut(row: Record<string, unknown>): Record<string, unknown> {
@@ -59,45 +63,46 @@ function slugify(value: string): string {
     .replace(/(^-|-$)/g, '');
 }
 
-async function listProducts(env: Env, activeOnly: boolean) {
+async function listRows(env: Env, table: string, activeOnly: boolean) {
   const q = activeOnly
-    ? `SELECT * FROM products WHERE activo = 1 ORDER BY orden, created_at`
-    : `SELECT * FROM products ORDER BY orden, created_at`;
+    ? `SELECT * FROM ${table} WHERE activo = 1 ORDER BY orden, created_at`
+    : `SELECT * FROM ${table} ORDER BY orden, created_at`;
   const { results } = await env.DB.prepare(q).all();
   return results.map(rowOut);
 }
 
-async function createProduct(req: Request, env: Env) {
+async function createRow(req: Request, env: Env, table: string, columns: string[]) {
   const body = (await req.json()) as Record<string, unknown>;
   const id = crypto.randomUUID();
   const createdAt = new Date().toISOString();
-  const slug = String(body.slug || slugify(String(body.name || ''))) || id;
-  const cols = ['id', ...PRODUCT_COLUMNS, 'created_at'];
+  const hasSlug = columns.includes('slug');
+  const slug = hasSlug ? String(body.slug || slugify(String(body.name || ''))) || id : undefined;
+  const cols = ['id', ...columns, 'created_at'];
   const values = [
     id,
-    ...PRODUCT_COLUMNS.map((c) => (c === 'slug' ? slug : fieldIn(c, body[c]))),
+    ...columns.map((c) => (c === 'slug' && slug !== undefined ? slug : fieldIn(c, body[c]))),
     createdAt,
   ];
   const placeholders = cols.map(() => '?').join(',');
-  await env.DB.prepare(`INSERT INTO products (${cols.join(',')}) VALUES (${placeholders})`)
+  await env.DB.prepare(`INSERT INTO ${table} (${cols.join(',')}) VALUES (${placeholders})`)
     .bind(...values)
     .run();
   return { id, slug, created_at: createdAt };
 }
 
-async function updateProduct(req: Request, env: Env, id: string) {
+async function updateRow(req: Request, env: Env, table: string, columns: string[], id: string) {
   const body = (await req.json()) as Record<string, unknown>;
-  const keys = PRODUCT_COLUMNS.filter((c) => c in body);
+  const keys = columns.filter((c) => c in body);
   if (keys.length === 0) return;
   const setClause = keys.map((k) => `${k} = ?`).join(', ');
   const values = keys.map((k) => fieldIn(k, body[k]));
-  await env.DB.prepare(`UPDATE products SET ${setClause} WHERE id = ?`)
+  await env.DB.prepare(`UPDATE ${table} SET ${setClause} WHERE id = ?`)
     .bind(...values, id)
     .run();
 }
 
-async function deleteProduct(env: Env, id: string) {
-  await env.DB.prepare(`DELETE FROM products WHERE id = ?`).bind(id).run();
+async function deleteRow(env: Env, table: string, id: string) {
+  await env.DB.prepare(`DELETE FROM ${table} WHERE id = ?`).bind(id).run();
 }
 
 async function handleUpload(req: Request, env: Env): Promise<Response> {
@@ -125,6 +130,39 @@ async function handleImageGet(env: Env, key: string): Promise<Response> {
   });
 }
 
+async function handleTable(req: Request, env: Env, table: string, columns: string[], id: string | undefined, url: URL): Promise<Response | null> {
+  if (req.method === 'GET' && !id) {
+    const activeOnly = url.searchParams.get('all') !== '1';
+    if (!activeOnly) {
+      const authErr = requireAuth(req, env);
+      if (authErr) return authErr;
+    }
+    return json(await listRows(env, table, activeOnly));
+  }
+
+  if (req.method === 'POST' && !id) {
+    const authErr = requireAuth(req, env);
+    if (authErr) return authErr;
+    return json(await createRow(req, env, table, columns), 201);
+  }
+
+  if (req.method === 'PATCH' && id) {
+    const authErr = requireAuth(req, env);
+    if (authErr) return authErr;
+    await updateRow(req, env, table, columns, id);
+    return json({ ok: true });
+  }
+
+  if (req.method === 'DELETE' && id) {
+    const authErr = requireAuth(req, env);
+    if (authErr) return authErr;
+    await deleteRow(env, table, id);
+    return json({ ok: true });
+  }
+
+  return null;
+}
+
 export default {
   async fetch(req: Request, env: Env): Promise<Response> {
     if (req.method === 'OPTIONS') return new Response(null, { headers: CORS_HEADERS });
@@ -144,36 +182,13 @@ export default {
       }
 
       if (parts[0] === 'api' && parts[1] === 'products') {
-        const id = parts[2];
+        const res = await handleTable(req, env, 'products', PRODUCT_COLUMNS, parts[2], url);
+        if (res) return res;
+      }
 
-        if (req.method === 'GET' && !id) {
-          const activeOnly = url.searchParams.get('all') !== '1';
-          if (!activeOnly) {
-            const authErr = requireAuth(req, env);
-            if (authErr) return authErr;
-          }
-          return json(await listProducts(env, activeOnly));
-        }
-
-        if (req.method === 'POST' && !id) {
-          const authErr = requireAuth(req, env);
-          if (authErr) return authErr;
-          return json(await createProduct(req, env), 201);
-        }
-
-        if (req.method === 'PATCH' && id) {
-          const authErr = requireAuth(req, env);
-          if (authErr) return authErr;
-          await updateProduct(req, env, id);
-          return json({ ok: true });
-        }
-
-        if (req.method === 'DELETE' && id) {
-          const authErr = requireAuth(req, env);
-          if (authErr) return authErr;
-          await deleteProduct(env, id);
-          return json({ ok: true });
-        }
+      if (parts[0] === 'api' && parts[1] === 'vendors') {
+        const res = await handleTable(req, env, 'vendors', VENDOR_COLUMNS, parts[2], url);
+        if (res) return res;
       }
 
       return json({ error: 'not found' }, 404);

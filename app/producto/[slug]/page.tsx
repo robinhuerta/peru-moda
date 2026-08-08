@@ -2,7 +2,6 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { api } from '@/lib/api';
-import { vendors } from '@/lib/vendors';
 import ProductGallery from '@/components/ProductGallery';
 import ProductActions from '@/components/ProductActions';
 
@@ -15,7 +14,10 @@ type ProductDetailPageProps = {
 
 export default async function ProductDetailPage({ params }: ProductDetailPageProps) {
   const { slug } = params;
-  const products = await api.listProducts({ revalidate: 30 });
+  const [products, vendors] = await Promise.all([
+    api.listProducts({ revalidate: 30 }),
+    api.listVendors({ revalidate: 30 }),
+  ]);
   const product = products.find((p) => p.slug === slug);
 
   if (!product) {

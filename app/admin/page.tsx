@@ -2,13 +2,12 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
-import { api, type DBProduct } from '@/lib/api';
-import { vendors } from '@/lib/vendors';
+import { api, type DBProduct, type DBVendor } from '@/lib/api';
 import { slugify } from '@/lib/utils';
 
 const PW_STORAGE_KEY = 'perumoda-admin-pw';
 
-const EMPTY: Omit<DBProduct, 'id' | 'createdAt'> = {
+const EMPTY_PRODUCT: Omit<DBProduct, 'id' | 'createdAt'> = {
   name: '',
   slug: '',
   price: '',
@@ -16,7 +15,19 @@ const EMPTY: Omit<DBProduct, 'id' | 'createdAt'> = {
   image: '',
   images: [],
   description: '',
-  vendorSlug: vendors[0]?.slug ?? '',
+  vendorSlug: '',
+  activo: true,
+  orden: 0,
+};
+
+const EMPTY_VENDOR: Omit<DBVendor, 'id' | 'createdAt'> = {
+  name: '',
+  slug: '',
+  description: '',
+  logo: '',
+  cover: '',
+  rating: 5,
+  sales: 0,
   activo: true,
   orden: 0,
 };
@@ -26,29 +37,46 @@ export default function AdminPage() {
   const [auth, setAuth] = useState(false);
   const [pwError, setPwError] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
+  const [tab, setTab] = useState<'products' | 'vendors'>('products');
 
   const [products, setProducts] = useState<DBProduct[]>([]);
+  const [vendors, setVendors] = useState<DBVendor[]>([]);
   const [loading, setLoading] = useState(false);
 
+  // Product form state
   const [modal, setModal] = useState(false);
-  const [form, setForm] = useState<Omit<DBProduct, 'id' | 'createdAt'>>(EMPTY);
+  const [form, setForm] = useState<Omit<DBProduct, 'id' | 'createdAt'>>(EMPTY_PRODUCT);
   const [editId, setEditId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [galleryUploading, setGalleryUploading] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-
   const [bulkProgress, setBulkProgress] = useState<{ done: number; total: number } | null>(null);
+
+  // Vendor form state
+  const [vendorModal, setVendorModal] = useState(false);
+  const [vendorForm, setVendorForm] = useState<Omit<DBVendor, 'id' | 'createdAt'>>(EMPTY_VENDOR);
+  const [vendorEditId, setVendorEditId] = useState<string | null>(null);
+  const [vendorSaving, setVendorSaving] = useState(false);
+  const [logoUploading, setLogoUploading] = useState(false);
+  const [coverUploading, setCoverUploading] = useState(false);
+  const [vendorDeleteId, setVendorDeleteId] = useState<string | null>(null);
 
   const mainFileRef = useRef<HTMLInputElement>(null);
   const galleryFileRef = useRef<HTMLInputElement>(null);
   const bulkFileRef = useRef<HTMLInputElement>(null);
+  const logoFileRef = useRef<HTMLInputElement>(null);
+  const coverFileRef = useRef<HTMLInputElement>(null);
 
   const load = async (password: string) => {
     setLoading(true);
     try {
-      const data = await api.listProducts({ all: true, password });
-      setProducts(data);
+      const [productData, vendorData] = await Promise.all([
+        api.listProducts({ all: true, password }),
+        api.listVendors({ all: true, password }),
+      ]);
+      setProducts(productData);
+      setVendors(vendorData);
     } finally {
       setLoading(false);
     }
@@ -57,12 +85,15 @@ export default function AdminPage() {
   useEffect(() => {
     const stored = sessionStorage.getItem(PW_STORAGE_KEY);
     if (stored) {
-      api
-        .listProducts({ all: true, password: stored })
-        .then((data) => {
+      Promise.all([
+        api.listProducts({ all: true, password: stored }),
+        api.listVendors({ all: true, password: stored }),
+      ])
+        .then(([productData, vendorData]) => {
           setPw(stored);
           setAuth(true);
-          setProducts(data);
+          setProducts(productData);
+          setVendors(vendorData);
         })
         .catch(() => sessionStorage.removeItem(PW_STORAGE_KEY))
         .finally(() => setCheckingAuth(false));
@@ -74,10 +105,14 @@ export default function AdminPage() {
   const login = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const data = await api.listProducts({ all: true, password: pw });
+      const [productData, vendorData] = await Promise.all([
+        api.listProducts({ all: true, password: pw }),
+        api.listVendors({ all: true, password: pw }),
+      ]);
       sessionStorage.setItem(PW_STORAGE_KEY, pw);
       setAuth(true);
-      setProducts(data);
+      setProducts(productData);
+      setVendors(vendorData);
     } catch {
       setPwError(true);
       setTimeout(() => setPwError(false), 1500);
@@ -90,8 +125,9 @@ export default function AdminPage() {
     setPw('');
   };
 
+  // ── Product handlers ──────────────────────────────
   const openAdd = () => {
-    setForm(EMPTY);
+    setForm({ ...EMPTY_PRODUCT, vendorSlug: vendors[0]?.slug ?? '' });
     setEditId(null);
     setModal(true);
   };
@@ -196,6 +232,75 @@ export default function AdminPage() {
     setBulkProgress(null);
   };
 
+  // ── Vendor handlers ───────────────────────────────
+  const openAddVendor = () => {
+    setVendorForm(EMPTY_VENDOR);
+    setVendorEditId(null);
+    setVendorModal(true);
+  };
+
+  const openEditVendor = (v: DBVendor) => {
+    const { id, createdAt, ...rest } = v;
+    setVendorForm(rest);
+    setVendorEditId(id);
+    setVendorModal(true);
+  };
+
+  const vfield = <K extends keyof typeof vendorForm>(key: K, value: (typeof vendorForm)[K]) =>
+    setVendorForm((f) => ({ ...f, [key]: value }));
+
+  const handleVendorNameChange = (name: string) => {
+    setVendorForm((f) => ({ ...f, name, slug: vendorEditId ? f.slug : slugify(name) }));
+  };
+
+  const handleLogoUpload = async (file: File) => {
+    setLogoUploading(true);
+    try {
+      const url = await api.upload(file, pw);
+      vfield('logo', url);
+    } finally {
+      setLogoUploading(false);
+    }
+  };
+
+  const handleCoverUpload = async (file: File) => {
+    setCoverUploading(true);
+    try {
+      const url = await api.upload(file, pw);
+      vfield('cover', url);
+    } finally {
+      setCoverUploading(false);
+    }
+  };
+
+  const saveVendor = async () => {
+    if (!vendorForm.name.trim() || !vendorForm.slug.trim()) return;
+    setVendorSaving(true);
+    try {
+      if (vendorEditId) {
+        await api.updateVendor(vendorEditId, vendorForm, pw);
+      } else {
+        await api.createVendor(vendorForm, pw);
+      }
+      await load(pw);
+      setVendorModal(false);
+    } finally {
+      setVendorSaving(false);
+    }
+  };
+
+  const toggleVendorActive = async (v: DBVendor) => {
+    await api.updateVendor(v.id, { activo: !v.activo }, pw);
+    await load(pw);
+  };
+
+  const deleteVendor = async () => {
+    if (!vendorDeleteId) return;
+    await api.deleteVendor(vendorDeleteId, pw);
+    setVendorDeleteId(null);
+    await load(pw);
+  };
+
   if (checkingAuth) {
     return <main className="min-h-screen bg-brand-950" />;
   }
@@ -231,87 +336,180 @@ export default function AdminPage() {
   return (
     <main className="min-h-screen bg-brand-950 text-white">
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 px-6 py-4">
-        <h1 className="text-lg font-black tracking-tight">Admin · Productos</h1>
+        <div className="flex items-center gap-4">
+          <h1 className="text-lg font-black tracking-tight">Admin</h1>
+          <div className="flex items-center gap-1 rounded-full bg-white/10 p-1">
+            <button
+              onClick={() => setTab('products')}
+              className={`rounded-full px-4 py-1.5 text-[11px] font-medium uppercase tracking-widest transition ${
+                tab === 'products' ? 'bg-white text-black' : 'text-white/60 hover:text-white'
+              }`}
+            >
+              Productos
+            </button>
+            <button
+              onClick={() => setTab('vendors')}
+              className={`rounded-full px-4 py-1.5 text-[11px] font-medium uppercase tracking-widest transition ${
+                tab === 'vendors' ? 'bg-white text-black' : 'text-white/60 hover:text-white'
+              }`}
+            >
+              Tiendas
+            </button>
+          </div>
+        </div>
         <div className="flex flex-wrap items-center gap-3">
-          <button
-            onClick={() => bulkFileRef.current?.click()}
-            disabled={!!bulkProgress}
-            className="rounded-full border border-white/20 px-4 py-2 text-xs font-semibold uppercase tracking-widest text-white transition hover:border-[#d12a18] disabled:opacity-50"
-          >
-            {bulkProgress ? `Subiendo ${bulkProgress.done}/${bulkProgress.total}...` : 'Subida masiva'}
-          </button>
-          <input
-            ref={bulkFileRef}
-            type="file"
-            accept="image/*"
-            multiple
-            className="hidden"
-            onChange={(e) => e.target.files?.length && handleBulkUpload(e.target.files)}
-          />
-          <button
-            onClick={openAdd}
-            className="rounded-full bg-[#d12a18] px-4 py-2 text-xs font-semibold uppercase tracking-widest text-white transition hover:bg-red-600"
-          >
-            + Nuevo producto
-          </button>
+          {tab === 'products' ? (
+            <>
+              <button
+                onClick={() => bulkFileRef.current?.click()}
+                disabled={!!bulkProgress}
+                className="rounded-full border border-white/20 px-4 py-2 text-xs font-semibold uppercase tracking-widest text-white transition hover:border-[#d12a18] disabled:opacity-50"
+              >
+                {bulkProgress ? `Subiendo ${bulkProgress.done}/${bulkProgress.total}...` : 'Subida masiva'}
+              </button>
+              <input
+                ref={bulkFileRef}
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={(e) => e.target.files?.length && handleBulkUpload(e.target.files)}
+              />
+              <button
+                onClick={openAdd}
+                className="rounded-full bg-[#d12a18] px-4 py-2 text-xs font-semibold uppercase tracking-widest text-white transition hover:bg-red-600"
+              >
+                + Nuevo producto
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={openAddVendor}
+              className="rounded-full bg-[#d12a18] px-4 py-2 text-xs font-semibold uppercase tracking-widest text-white transition hover:bg-red-600"
+            >
+              + Nueva tienda
+            </button>
+          )}
           <button onClick={logout} className="text-xs text-slate-400 transition hover:text-white">
             Salir
           </button>
         </div>
       </div>
 
-      <div className="mx-auto max-w-4xl px-6 py-10">
-        {loading ? (
-          <p className="text-center text-slate-400">Cargando...</p>
-        ) : products.length === 0 ? (
-          <p className="text-center text-slate-400">Sin productos aún. Agrega el primero.</p>
-        ) : (
-          <div className="space-y-3">
-            {products.map((p) => (
-              <div
-                key={p.id}
-                className={`flex items-center gap-4 rounded-2xl border border-white/10 bg-brand-900 p-4 transition ${
-                  p.activo ? '' : 'opacity-50'
-                }`}
-              >
-                <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-xl bg-slate-900">
-                  {p.image && <Image src={p.image} alt={p.name} fill className="object-cover" sizes="64px" />}
+      {/* Products list */}
+      {tab === 'products' && (
+        <div className="mx-auto max-w-4xl px-6 py-10">
+          {loading ? (
+            <p className="text-center text-slate-400">Cargando...</p>
+          ) : products.length === 0 ? (
+            <p className="text-center text-slate-400">Sin productos aún. Agrega el primero.</p>
+          ) : (
+            <div className="space-y-3">
+              {products.map((p) => (
+                <div
+                  key={p.id}
+                  className={`flex items-center gap-4 rounded-2xl border border-white/10 bg-brand-900 p-4 transition ${
+                    p.activo ? '' : 'opacity-50'
+                  }`}
+                >
+                  <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-xl bg-slate-900">
+                    {p.image && <Image src={p.image} alt={p.name} fill className="object-cover" sizes="64px" />}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-semibold text-white">{p.name || 'Sin nombre'}</p>
+                    <p className="text-xs text-slate-400">
+                      {p.tag || 'Sin tag'} · {p.price || 'Sin precio'} ·{' '}
+                      {vendors.find((v) => v.slug === p.vendorSlug)?.name ?? 'Sin tienda'}
+                      {!p.activo && ' · Oculto'}
+                    </p>
+                  </div>
+                  <div className="flex flex-shrink-0 items-center gap-2">
+                    <button
+                      onClick={() => toggleActive(p)}
+                      className={`rounded-full px-3 py-1.5 text-xs font-medium uppercase tracking-wide transition ${
+                        p.activo ? 'bg-green-500/15 text-green-400 hover:bg-green-500/25' : 'bg-white/10 text-slate-300 hover:bg-white/20'
+                      }`}
+                    >
+                      {p.activo ? 'Visible' : 'Oculto'}
+                    </button>
+                    <button
+                      onClick={() => openEdit(p)}
+                      className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-medium uppercase tracking-wide text-white transition hover:bg-white/20"
+                    >
+                      Editar
+                    </button>
+                    <button
+                      onClick={() => setDeleteId(p.id)}
+                      className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-medium uppercase tracking-wide text-slate-300 transition hover:bg-red-500/20 hover:text-red-400"
+                    >
+                      Eliminar
+                    </button>
+                  </div>
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-semibold text-white">{p.name || 'Sin nombre'}</p>
-                  <p className="text-xs text-slate-400">
-                    {p.tag || 'Sin tag'} · {p.price || 'Sin precio'} ·{' '}
-                    {vendors.find((v) => v.slug === p.vendorSlug)?.name ?? 'Sin tienda'}
-                    {!p.activo && ' · Oculto'}
-                  </p>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Vendors list */}
+      {tab === 'vendors' && (
+        <div className="mx-auto max-w-4xl px-6 py-10">
+          {loading ? (
+            <p className="text-center text-slate-400">Cargando...</p>
+          ) : vendors.length === 0 ? (
+            <p className="text-center text-slate-400">Sin tiendas aún. Agrega la primera.</p>
+          ) : (
+            <div className="space-y-3">
+              {vendors.map((v) => (
+                <div
+                  key={v.id}
+                  className={`flex items-center gap-4 rounded-2xl border border-white/10 bg-brand-900 p-4 transition ${
+                    v.activo ? '' : 'opacity-50'
+                  }`}
+                >
+                  <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-full bg-slate-900">
+                    {v.logo ? (
+                      <Image src={v.logo} alt={v.name} fill className="object-cover" sizes="64px" />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-[10px] text-slate-500">Sin logo</div>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-semibold text-white">{v.name || 'Sin nombre'}</p>
+                    <p className="text-xs text-slate-400">
+                      {v.rating.toFixed(1)} ★ · {v.sales} ventas
+                      {!v.activo && ' · Oculto'}
+                    </p>
+                  </div>
+                  <div className="flex flex-shrink-0 items-center gap-2">
+                    <button
+                      onClick={() => toggleVendorActive(v)}
+                      className={`rounded-full px-3 py-1.5 text-xs font-medium uppercase tracking-wide transition ${
+                        v.activo ? 'bg-green-500/15 text-green-400 hover:bg-green-500/25' : 'bg-white/10 text-slate-300 hover:bg-white/20'
+                      }`}
+                    >
+                      {v.activo ? 'Visible' : 'Oculto'}
+                    </button>
+                    <button
+                      onClick={() => openEditVendor(v)}
+                      className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-medium uppercase tracking-wide text-white transition hover:bg-white/20"
+                    >
+                      Editar
+                    </button>
+                    <button
+                      onClick={() => setVendorDeleteId(v.id)}
+                      className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-medium uppercase tracking-wide text-slate-300 transition hover:bg-red-500/20 hover:text-red-400"
+                    >
+                      Eliminar
+                    </button>
+                  </div>
                 </div>
-                <div className="flex flex-shrink-0 items-center gap-2">
-                  <button
-                    onClick={() => toggleActive(p)}
-                    className={`rounded-full px-3 py-1.5 text-xs font-medium uppercase tracking-wide transition ${
-                      p.activo ? 'bg-green-500/15 text-green-400 hover:bg-green-500/25' : 'bg-white/10 text-slate-300 hover:bg-white/20'
-                    }`}
-                  >
-                    {p.activo ? 'Visible' : 'Oculto'}
-                  </button>
-                  <button
-                    onClick={() => openEdit(p)}
-                    className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-medium uppercase tracking-wide text-white transition hover:bg-white/20"
-                  >
-                    Editar
-                  </button>
-                  <button
-                    onClick={() => setDeleteId(p.id)}
-                    className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-medium uppercase tracking-wide text-slate-300 transition hover:bg-red-500/20 hover:text-red-400"
-                  >
-                    Eliminar
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Product modal */}
       {modal && (
@@ -458,7 +656,155 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* Delete confirm */}
+      {/* Vendor modal */}
+      {vendorModal && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 pt-10">
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setVendorModal(false)} />
+          <div className="relative mb-10 w-full max-w-lg rounded-2xl border border-white/10 bg-brand-900 shadow-soft">
+            <div className="flex items-center justify-between border-b border-white/10 p-6">
+              <h2 className="text-lg font-bold text-white">{vendorEditId ? 'Editar tienda' : 'Nueva tienda'}</h2>
+              <button onClick={() => setVendorModal(false)} className="text-slate-400 hover:text-white">
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-5 p-6">
+              <div>
+                <label className="admin-label">Logo</label>
+                <div className="flex items-center gap-3">
+                  {vendorForm.logo ? (
+                    <div className="group relative h-20 w-20 flex-shrink-0">
+                      <Image src={vendorForm.logo} alt="" fill className="rounded-full border-2 border-[#d12a18] object-cover" sizes="80px" />
+                      <button
+                        onClick={() => vfield('logo', '')}
+                        className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => logoFileRef.current?.click()}
+                      className="flex h-20 w-20 flex-shrink-0 flex-col items-center justify-center rounded-full border-2 border-dashed border-white/20 text-slate-400 transition hover:border-[#d12a18] hover:text-[#d12a18]"
+                    >
+                      <span className="text-2xl leading-none">+</span>
+                      <span className="mt-1 text-[9px]">{logoUploading ? 'Subiendo...' : 'Subir'}</span>
+                    </button>
+                  )}
+                  <input
+                    ref={logoFileRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => e.target.files?.[0] && handleLogoUpload(e.target.files[0])}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="admin-label">Foto de portada</label>
+                <div className="flex items-center gap-3">
+                  {vendorForm.cover ? (
+                    <div className="group relative h-20 w-32 flex-shrink-0">
+                      <Image src={vendorForm.cover} alt="" fill className="rounded-xl border-2 border-[#d12a18] object-cover" sizes="128px" />
+                      <button
+                        onClick={() => vfield('cover', '')}
+                        className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => coverFileRef.current?.click()}
+                      className="flex h-20 w-32 flex-shrink-0 flex-col items-center justify-center rounded-xl border-2 border-dashed border-white/20 text-slate-400 transition hover:border-[#d12a18] hover:text-[#d12a18]"
+                    >
+                      <span className="text-2xl leading-none">+</span>
+                      <span className="mt-1 text-[9px]">{coverUploading ? 'Subiendo...' : 'Subir'}</span>
+                    </button>
+                  )}
+                  <input
+                    ref={coverFileRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => e.target.files?.[0] && handleCoverUpload(e.target.files[0])}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="admin-label">Nombre *</label>
+                <input value={vendorForm.name} onChange={(e) => handleVendorNameChange(e.target.value)} className="admin-input" placeholder="Ej: Lima Caps" />
+              </div>
+
+              <div>
+                <label className="admin-label">Slug (URL)</label>
+                <input value={vendorForm.slug} onChange={(e) => vfield('slug', slugify(e.target.value))} className="admin-input" placeholder="lima-caps" />
+              </div>
+
+              <div>
+                <label className="admin-label">Descripción</label>
+                <textarea
+                  value={vendorForm.description}
+                  onChange={(e) => vfield('description', e.target.value)}
+                  rows={3}
+                  className="admin-input"
+                  placeholder="Describe la tienda..."
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="admin-label">Calificación</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="5"
+                    step="0.1"
+                    value={vendorForm.rating}
+                    onChange={(e) => vfield('rating', parseFloat(e.target.value) || 0)}
+                    className="admin-input"
+                  />
+                </div>
+                <div>
+                  <label className="admin-label">Ventas</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={vendorForm.sales}
+                    onChange={(e) => vfield('sales', parseInt(e.target.value, 10) || 0)}
+                    className="admin-input"
+                  />
+                </div>
+              </div>
+
+              <label className="flex items-center gap-2 text-sm text-slate-300">
+                <input type="checkbox" checked={vendorForm.activo} onChange={(e) => vfield('activo', e.target.checked)} />
+                Visible en el sitio
+              </label>
+            </div>
+
+            <div className="flex justify-end gap-3 border-t border-white/10 p-6">
+              <button
+                onClick={() => setVendorModal(false)}
+                className="rounded-full border border-white/20 px-6 py-2.5 text-xs font-semibold uppercase tracking-widest text-slate-300 transition hover:border-white/40"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={saveVendor}
+                disabled={vendorSaving}
+                className="rounded-full bg-[#d12a18] px-6 py-2.5 text-xs font-semibold uppercase tracking-widest text-white transition hover:bg-red-600 disabled:opacity-50"
+              >
+                {vendorSaving ? 'Guardando...' : 'Guardar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete confirms */}
       {deleteId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setDeleteId(null)} />
@@ -473,6 +819,29 @@ export default function AdminPage() {
               </button>
               <button
                 onClick={deleteProduct}
+                className="rounded-full bg-red-500 px-5 py-2 text-xs font-semibold uppercase tracking-widest text-white hover:bg-red-600"
+              >
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {vendorDeleteId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setVendorDeleteId(null)} />
+          <div className="relative w-full max-w-sm rounded-2xl border border-white/10 bg-brand-900 p-6 shadow-soft">
+            <p className="text-white">¿Eliminar esta tienda? Sus productos quedarán sin tienda asignada.</p>
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                onClick={() => setVendorDeleteId(null)}
+                className="rounded-full border border-white/20 px-5 py-2 text-xs font-semibold uppercase tracking-widest text-slate-300"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={deleteVendor}
                 className="rounded-full bg-red-500 px-5 py-2 text-xs font-semibold uppercase tracking-widest text-white hover:bg-red-600"
               >
                 Eliminar

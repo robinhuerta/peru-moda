@@ -56,6 +56,64 @@ function toBody(product: Partial<DBProduct>) {
   return body;
 }
 
+export type DBVendor = {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  logo: string;
+  cover: string;
+  rating: number;
+  sales: number;
+  activo: boolean;
+  orden: number;
+  createdAt: string;
+};
+
+type VendorApiRow = {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  logo: string;
+  cover: string;
+  rating: number;
+  sales: number;
+  activo: boolean;
+  orden: number;
+  created_at: string;
+};
+
+function vendorFromRow(row: VendorApiRow): DBVendor {
+  return {
+    id: row.id,
+    name: row.name,
+    slug: row.slug,
+    description: row.description,
+    logo: row.logo,
+    cover: row.cover,
+    rating: row.rating,
+    sales: row.sales,
+    activo: row.activo,
+    orden: row.orden,
+    createdAt: row.created_at,
+  };
+}
+
+function vendorToBody(vendor: Partial<DBVendor>) {
+  const body: Record<string, unknown> = {};
+  if (vendor.name !== undefined) body.name = vendor.name;
+  if (vendor.slug !== undefined) body.slug = vendor.slug;
+  if (vendor.description !== undefined) body.description = vendor.description;
+  if (vendor.logo !== undefined) body.logo = vendor.logo;
+  if (vendor.cover !== undefined) body.cover = vendor.cover;
+  if (vendor.rating !== undefined) body.rating = vendor.rating;
+  if (vendor.sales !== undefined) body.sales = vendor.sales;
+  if (vendor.activo !== undefined) body.activo = vendor.activo;
+  if (vendor.orden !== undefined) body.orden = vendor.orden;
+  return body;
+}
+
 async function request(path: string, options: RequestInit = {}) {
   const res = await fetch(`${API_URL}${path}`, options);
   if (!res.ok) throw new Error(`API error ${res.status} on ${path}`);
@@ -97,6 +155,38 @@ export const api = {
 
   deleteProduct: async (id: string, password: string) => {
     return request(`/api/products/${id}`, { method: 'DELETE', headers: authHeaders(password) });
+  },
+
+  listVendors: async (options?: { all?: boolean; password?: string; revalidate?: number }): Promise<DBVendor[]> => {
+    const all = options?.all ?? false;
+    const res = await fetch(`${API_URL}/api/vendors${all ? '?all=1' : ''}`, {
+      headers: options?.password ? authHeaders(options.password) : undefined,
+      next: options?.revalidate !== undefined ? { revalidate: options.revalidate } : undefined,
+      cache: options?.revalidate === undefined ? 'no-store' : undefined,
+    });
+    if (!res.ok) throw new Error(`API error ${res.status} listing vendors`);
+    const rows = (await res.json()) as VendorApiRow[];
+    return rows.map(vendorFromRow);
+  },
+
+  createVendor: async (vendor: Partial<DBVendor>, password: string) => {
+    return request('/api/vendors', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(password) },
+      body: JSON.stringify(vendorToBody(vendor)),
+    });
+  },
+
+  updateVendor: async (id: string, vendor: Partial<DBVendor>, password: string) => {
+    return request(`/api/vendors/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(password) },
+      body: JSON.stringify(vendorToBody(vendor)),
+    });
+  },
+
+  deleteVendor: async (id: string, password: string) => {
+    return request(`/api/vendors/${id}`, { method: 'DELETE', headers: authHeaders(password) });
   },
 
   upload: async (file: File, password: string): Promise<string> => {

@@ -1,7 +1,11 @@
 import VendorPanel from '@/components/VendorPanel';
-import { vendors } from '@/lib/vendors';
+import { api } from '@/lib/api';
 
-export default function VendorsPage() {
+export const revalidate = 30;
+
+export default async function VendorsPage() {
+  const vendors = await api.listVendors({ revalidate: 30 });
+
   return (
     <main className="min-h-screen bg-brand-950 text-white">
       <section className="relative overflow-hidden px-6 py-16 sm:px-10 lg:px-16">
@@ -15,11 +19,15 @@ export default function VendorsPage() {
             </p>
           </div>
 
-          <div className="grid gap-8 xl:grid-cols-3">
-            {vendors.map((vendor) => (
-              <VendorPanel key={vendor.name} vendor={vendor} />
-            ))}
-          </div>
+          {vendors.length === 0 ? (
+            <p className="text-slate-400">Aún no hay tiendas publicadas.</p>
+          ) : (
+            <div className="grid gap-8 xl:grid-cols-3">
+              {vendors.map((vendor) => (
+                <VendorPanel key={vendor.slug} vendor={vendor} />
+              ))}
+            </div>
+          )}
         </div>
       </section>
     </main>
