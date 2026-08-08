@@ -17,6 +17,15 @@ const config: Config = {
       },
       boxShadow: {
         soft: '0 25px 80px rgba(0,0,0,0.18)'
+      },
+      keyframes: {
+        marquee: {
+          '0%': { transform: 'translateX(0)' },
+          '100%': { transform: 'translateX(-50%)' }
+        }
+      },
+      animation: {
+        marquee: 'marquee 28s linear infinite'
       }
     }
   },

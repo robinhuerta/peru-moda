@@ -1,11 +1,13 @@
 import ProductCard from '@/components/ProductCard';
 import Hero from '@/components/Hero';
+import LogoMarquee from '@/components/LogoMarquee';
 import { mockProducts } from '@/lib/mockProducts';
 
 export default function CatalogPage() {
   return (
     <main className="min-h-screen bg-brand-950 text-white">
       <Hero />
+      <LogoMarquee />
 
       <section id="catalogo" className="relative overflow-hidden px-6 pb-16 sm:px-10 lg:px-16">
         <div className="mx-auto max-w-6xl">
