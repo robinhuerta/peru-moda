@@ -1,9 +1,9 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { mockProducts } from '@/lib/mockProducts';
+import type { Product } from '@/components/ProductCard';
 
-export default function Hero() {
-  const [featured, second, third] = mockProducts;
+export default function Hero({ products }: { products: Product[] }) {
+  const [featured, second, third] = products;
 
   return (
     <section className="relative overflow-hidden px-6 pb-20 pt-16 sm:px-10 lg:px-16">
@@ -45,7 +45,7 @@ export default function Hero() {
 
           <dl className="mt-14 grid max-w-md grid-cols-3 gap-6 border-t border-white/10 pt-8">
             <div>
-              <dt className="text-2xl font-black text-white sm:text-3xl">{mockProducts.length}+</dt>
+              <dt className="text-2xl font-black text-white sm:text-3xl">{products.length}+</dt>
               <dd className="mt-1 text-xs uppercase tracking-[0.2em] text-slate-400">Modelos exclusivos</dd>
             </div>
             <div>

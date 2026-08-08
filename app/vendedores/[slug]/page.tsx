@@ -1,26 +1,25 @@
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import { vendors } from '@/lib/vendors';
-import { mockProducts } from '@/lib/mockProducts';
+import { api } from '@/lib/api';
 import ProductCard from '@/components/ProductCard';
 
-export async function generateStaticParams() {
-  return vendors.map((vendor) => ({ slug: vendor.slug }));
-}
+export const revalidate = 30;
+export const dynamicParams = true;
 
 type VendorStorePageProps = {
   params: { slug: string };
 };
 
-export default function VendorStorePage({ params }: VendorStorePageProps) {
+export default async function VendorStorePage({ params }: VendorStorePageProps) {
   const vendor = vendors.find((v) => v.slug === params.slug);
 
   if (!vendor) {
     notFound();
   }
 
-  // Demo: cada tienda muestra el catálogo completo hasta contar con asignación real de productos por vendedor.
-  const products = mockProducts;
+  const allProducts = await api.listProducts({ revalidate: 30 });
+  const products = allProducts.filter((p) => p.vendorSlug === vendor.slug);
 
   return (
     <main className="min-h-screen bg-brand-950 text-white">
@@ -51,11 +50,15 @@ export default function VendorStorePage({ params }: VendorStorePageProps) {
           </div>
 
           <h2 className="mb-6 text-2xl font-bold text-white">Productos de {vendor.name}</h2>
-          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {products.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
+          {products.length === 0 ? (
+            <p className="text-slate-400">Esta tienda aún no tiene productos publicados.</p>
+          ) : (
+            <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {products.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          )}
         </div>
       </section>
     </main>

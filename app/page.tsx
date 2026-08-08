@@ -1,13 +1,17 @@
 import ProductCard from '@/components/ProductCard';
 import Hero from '@/components/Hero';
 import LogoMarquee from '@/components/LogoMarquee';
-import { mockProducts } from '@/lib/mockProducts';
+import { api } from '@/lib/api';
 
-export default function CatalogPage() {
+export const revalidate = 30;
+
+export default async function CatalogPage() {
+  const products = await api.listProducts({ revalidate: 30 });
+
   return (
     <main className="min-h-screen bg-brand-950 text-white">
-      <Hero />
-      <LogoMarquee />
+      <Hero products={products} />
+      <LogoMarquee products={products} />
 
       <section id="catalogo" className="relative overflow-hidden px-6 pb-16 sm:px-10 lg:px-16">
         <div className="mx-auto max-w-6xl">
@@ -22,11 +26,15 @@ export default function CatalogPage() {
             </div>
           </div>
 
-          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {mockProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
+          {products.length === 0 ? (
+            <p className="text-slate-400">Aún no hay productos publicados.</p>
+          ) : (
+            <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {products.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          )}
         </div>
       </section>
     </main>

@@ -1,9 +1,10 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { mockProducts } from '@/lib/mockProducts';
+import type { Product } from '@/components/ProductCard';
 
-export default function LogoMarquee() {
-  const track = [...mockProducts, ...mockProducts];
+export default function LogoMarquee({ products }: { products: Product[] }) {
+  if (products.length === 0) return null;
+  const track = [...products, ...products];
 
   return (
     <section className="border-y border-white/10 bg-brand-900/50 py-10">

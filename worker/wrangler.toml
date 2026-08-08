@@ -1,0 +1,12 @@
+name = "peru-moda-api"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "peru-moda-catalog"
+database_id = "c30f3b0c-a333-4cd1-b89e-ccdd0c9812a2"
+
+[[r2_buckets]]
+binding = "IMAGES"
+bucket_name = "peru-moda-images"
