@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
-import { api, type DBProduct, type DBVendor } from '@/lib/api';
-import { slugify } from '@/lib/utils';
+import { api, type DBProduct, type DBVendor, type DBOrder } from '@/lib/api';
+import { slugify, formatPrice } from '@/lib/utils';
 
 const PW_STORAGE_KEY = 'perumoda-admin-pw';
 
@@ -16,8 +16,23 @@ const EMPTY_PRODUCT: Omit<DBProduct, 'id' | 'createdAt'> = {
   images: [],
   description: '',
   vendorSlug: '',
+  stock: 0,
   activo: true,
   orden: 0,
+};
+
+const ORDER_STATUS_LABEL: Record<string, string> = {
+  pending_payment: 'Pendiente (contra entrega)',
+  pending_confirmation: 'Pendiente de confirmación',
+  confirmed: 'Confirmado',
+  cancelled: 'Cancelado',
+};
+
+const PAYMENT_METHOD_LABEL: Record<string, string> = {
+  transfer: 'Transferencia',
+  yape: 'Yape',
+  plin: 'Plin',
+  cash: 'Contra entrega',
 };
 
 const EMPTY_VENDOR: Omit<DBVendor, 'id' | 'createdAt'> = {
@@ -38,10 +53,13 @@ export default function AdminPage() {
   const [auth, setAuth] = useState(false);
   const [pwError, setPwError] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
-  const [tab, setTab] = useState<'products' | 'vendors'>('products');
+  const [tab, setTab] = useState<'products' | 'vendors' | 'orders'>('products');
 
   const [products, setProducts] = useState<DBProduct[]>([]);
   const [vendors, setVendors] = useState<DBVendor[]>([]);
+  const [orders, setOrders] = useState<DBOrder[]>([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [orderActionId, setOrderActionId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   // Product form state
@@ -126,6 +144,32 @@ export default function AdminPage() {
     sessionStorage.removeItem(PW_STORAGE_KEY);
     setAuth(false);
     setPw('');
+  };
+
+  const loadOrders = async () => {
+    setOrdersLoading(true);
+    try {
+      setOrders(await api.listOrders(pw));
+    } finally {
+      setOrdersLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (auth && tab === 'orders') {
+      loadOrders();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auth, tab]);
+
+  const setOrderStatus = async (id: string, status: 'confirmed' | 'cancelled') => {
+    setOrderActionId(id);
+    try {
+      await api.updateOrderStatus(id, status, pw);
+      await loadOrders();
+    } finally {
+      setOrderActionId(null);
+    }
   };
 
   // ── Product handlers ──────────────────────────────
@@ -368,6 +412,14 @@ export default function AdminPage() {
             >
               Tiendas
             </button>
+            <button
+              onClick={() => setTab('orders')}
+              className={`rounded-full px-4 py-1.5 text-[11px] font-medium uppercase tracking-widest transition ${
+                tab === 'orders' ? 'bg-white text-black' : 'text-white/60 hover:text-white'
+              }`}
+            >
+              Pedidos
+            </button>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-3">
@@ -395,14 +447,14 @@ export default function AdminPage() {
                 + Nuevo producto
               </button>
             </>
-          ) : (
+          ) : tab === 'vendors' ? (
             <button
               onClick={openAddVendor}
               className="rounded-full bg-[#d12a18] px-4 py-2 text-xs font-semibold uppercase tracking-widest text-white transition hover:bg-red-600"
             >
               + Nueva tienda
             </button>
-          )}
+          ) : null}
           <button onClick={logout} className="text-xs text-slate-400 transition hover:text-white">
             Salir
           </button>
@@ -432,7 +484,8 @@ export default function AdminPage() {
                     <p className="truncate font-semibold text-white">{p.name || 'Sin nombre'}</p>
                     <p className="text-xs text-slate-400">
                       {p.tag || 'Sin tag'} · {p.price || 'Sin precio'} ·{' '}
-                      {vendors.find((v) => v.slug === p.vendorSlug)?.name ?? 'Sin tienda'}
+                      {vendors.find((v) => v.slug === p.vendorSlug)?.name ?? 'Sin tienda'} ·{' '}
+                      <span className={p.stock <= 0 ? 'text-red-400' : ''}>{p.stock <= 0 ? 'Agotado' : `Stock: ${p.stock}`}</span>
                       {!p.activo && ' · Oculto'}
                     </p>
                   </div>
@@ -517,6 +570,87 @@ export default function AdminPage() {
                       Eliminar
                     </button>
                   </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Orders list */}
+      {tab === 'orders' && (
+        <div className="mx-auto max-w-4xl px-6 py-10">
+          {ordersLoading ? (
+            <p className="text-center text-slate-400">Cargando...</p>
+          ) : orders.length === 0 ? (
+            <p className="text-center text-slate-400">Sin pedidos aún.</p>
+          ) : (
+            <div className="space-y-4">
+              {orders.map((o) => (
+                <div key={o.id} className="rounded-2xl border border-white/10 bg-brand-900 p-5">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="font-semibold text-white">{o.customer_name} · {o.phone}</p>
+                      <p className="text-xs text-slate-400">
+                        {o.delivery_method === 'delivery'
+                          ? `${o.address}, ${o.district}, ${o.province}, ${o.department}${o.address_reference ? ` (${o.address_reference})` : ''}`
+                          : 'Recojo en tienda'}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-400">
+                        Pago: {PAYMENT_METHOD_LABEL[o.payment_method] ?? o.payment_method}
+                        {o.payment_proof_url && (
+                          <>
+                            {' · '}
+                            <a href={o.payment_proof_url} target="_blank" rel="noreferrer" className="text-[#d12a18] hover:underline">
+                              Ver comprobante
+                            </a>
+                          </>
+                        )}
+                      </p>
+                      {o.notes && <p className="mt-1 text-xs text-slate-400">Nota: {o.notes}</p>}
+                    </div>
+                    <div className="text-right">
+                      <p className="text-lg font-bold text-white">{formatPrice(o.total)}</p>
+                      <span
+                        className={`inline-block rounded-full px-3 py-1 text-[10px] font-medium uppercase tracking-wide ${
+                          o.status === 'confirmed'
+                            ? 'bg-green-500/15 text-green-400'
+                            : o.status === 'cancelled'
+                              ? 'bg-red-500/15 text-red-400'
+                              : 'bg-yellow-500/15 text-yellow-400'
+                        }`}
+                      >
+                        {ORDER_STATUS_LABEL[o.status] ?? o.status}
+                      </span>
+                    </div>
+                  </div>
+
+                  <ul className="mt-3 space-y-1 border-t border-white/10 pt-3 text-xs text-slate-400">
+                    {o.items.map((item) => (
+                      <li key={item.id}>
+                        {item.quantity}× {item.product_name} — {formatPrice(item.subtotal)}
+                      </li>
+                    ))}
+                  </ul>
+
+                  {o.status !== 'confirmed' && o.status !== 'cancelled' && (
+                    <div className="mt-4 flex gap-2">
+                      <button
+                        onClick={() => setOrderStatus(o.id, 'confirmed')}
+                        disabled={orderActionId === o.id}
+                        className="rounded-full bg-green-500/15 px-3 py-1.5 text-xs font-medium uppercase tracking-wide text-green-400 transition hover:bg-green-500/25 disabled:opacity-50"
+                      >
+                        Confirmar
+                      </button>
+                      <button
+                        onClick={() => setOrderStatus(o.id, 'cancelled')}
+                        disabled={orderActionId === o.id}
+                        className="rounded-full bg-red-500/15 px-3 py-1.5 text-xs font-medium uppercase tracking-wide text-red-400 transition hover:bg-red-500/25 disabled:opacity-50"
+                      >
+                        Cancelar (recupera stock)
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -620,6 +754,18 @@ export default function AdminPage() {
                   <label className="admin-label">Tag</label>
                   <input value={form.tag} onChange={(e) => field('tag', e.target.value)} className="admin-input" placeholder="Nuevo" />
                 </div>
+              </div>
+
+              <div>
+                <label className="admin-label">Stock disponible</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={form.stock}
+                  onChange={(e) => field('stock', Math.max(0, parseInt(e.target.value, 10) || 0))}
+                  className="admin-input"
+                  placeholder="0"
+                />
               </div>
 
               <div>

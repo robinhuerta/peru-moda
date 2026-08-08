@@ -19,6 +19,7 @@ type ApiRow = {
   images: string[];
   description: string;
   vendor_slug: string;
+  stock: number;
   activo: boolean;
   orden: number;
   created_at: string;
@@ -35,6 +36,7 @@ function fromRow(row: ApiRow): DBProduct {
     images: row.images,
     description: row.description,
     vendorSlug: row.vendor_slug,
+    stock: row.stock,
     activo: row.activo,
     orden: row.orden,
     createdAt: row.created_at,
@@ -51,6 +53,7 @@ function toBody(product: Partial<DBProduct>) {
   if (product.images !== undefined) body.images = product.images;
   if (product.description !== undefined) body.description = product.description;
   if (product.vendorSlug !== undefined) body.vendor_slug = product.vendorSlug;
+  if (product.stock !== undefined) body.stock = product.stock;
   if (product.activo !== undefined) body.activo = product.activo;
   if (product.orden !== undefined) body.orden = product.orden;
   return body;
@@ -117,6 +120,60 @@ function vendorToBody(vendor: Partial<DBVendor>) {
   if (vendor.orden !== undefined) body.orden = vendor.orden;
   return body;
 }
+
+export type DeliveryMethod = 'delivery' | 'pickup';
+export type PaymentMethod = 'transfer' | 'yape' | 'plin' | 'cash';
+export type OrderStatus = 'pending_payment' | 'pending_confirmation' | 'confirmed' | 'cancelled';
+
+export type OrderItem = {
+  id: string;
+  order_id: string;
+  product_id: string;
+  product_name: string;
+  price: number;
+  quantity: number;
+  subtotal: number;
+};
+
+export type DBOrder = {
+  id: string;
+  customer_name: string;
+  phone: string;
+  dni: string;
+  department: string;
+  province: string;
+  district: string;
+  address: string;
+  address_reference: string;
+  delivery_method: DeliveryMethod;
+  payment_method: PaymentMethod;
+  payment_proof_url: string;
+  notes: string;
+  subtotal: number;
+  total: number;
+  status: OrderStatus;
+  created_at: string;
+  items: OrderItem[];
+};
+
+export type CreateOrderPayload = {
+  customer: { name: string; phone: string; dni?: string };
+  delivery: {
+    department?: string;
+    province?: string;
+    district?: string;
+    address?: string;
+    addressReference?: string;
+    method: DeliveryMethod;
+  };
+  payment: { method: PaymentMethod; proofUrl?: string };
+  notes?: string;
+  items: { productId: string; quantity: number }[];
+};
+
+export type CreateOrderResult =
+  | { ok: true; id: string; status: OrderStatus; total: number }
+  | { ok: false; unavailable: { productId: string; name: string; stock: number }[] };
 
 async function request(path: string, options: RequestInit = {}) {
   const res = await fetch(`${API_URL}${path}`, options);
@@ -204,5 +261,44 @@ export const api = {
     if (!res.ok) throw new Error(`Upload failed: ${res.status}`);
     const data = await res.json();
     return data.url as string;
+  },
+
+  uploadProof: async (file: File): Promise<string> => {
+    const form = new FormData();
+    form.append('file', file);
+    const res = await fetch(`${API_URL}/api/upload-proof`, {
+      method: 'POST',
+      body: form,
+    });
+    if (!res.ok) throw new Error(`Upload failed: ${res.status}`);
+    const data = await res.json();
+    return data.url as string;
+  },
+
+  createOrder: async (payload: CreateOrderPayload): Promise<CreateOrderResult> => {
+    const res = await fetch(`${API_URL}/api/orders`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      return { ok: false, unavailable: data.unavailable ?? [] };
+    }
+    return { ok: true, id: data.id, status: data.status, total: data.total };
+  },
+
+  listOrders: async (password: string): Promise<DBOrder[]> => {
+    const res = await fetch(`${API_URL}/api/orders`, { headers: authHeaders(password), cache: 'no-store' });
+    if (!res.ok) throw new Error(`API error ${res.status} listing orders`);
+    return res.json();
+  },
+
+  updateOrderStatus: async (id: string, status: 'confirmed' | 'cancelled', password: string) => {
+    return request(`/api/orders/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(password) },
+      body: JSON.stringify({ status }),
+    });
   },
 };

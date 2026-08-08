@@ -12,7 +12,7 @@ export type CartItem = {
 type CartState = {
   items: CartItem[];
   favorites: string[];
-  addItem: (product: Product) => void;
+  addItem: (product: Product) => boolean;
   removeItem: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => void;
   toggleFavorite: (productId: string) => void;
@@ -21,23 +21,27 @@ type CartState = {
 
 export const useCartStore = create<CartState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       items: [],
       favorites: [],
-      addItem: (product) =>
+      addItem: (product) => {
+        const existing = get().items.find((item) => item.product.id === product.id);
+        const currentQty = existing?.quantity ?? 0;
+        if (currentQty + 1 > product.stock) return false;
         set((state) => {
-          const existing = state.items.find((item) => item.product.id === product.id);
           if (existing) {
             return {
               items: state.items.map((item) =>
                 item.product.id === product.id
-                  ? { ...item, quantity: item.quantity + 1 }
+                  ? { ...item, quantity: item.quantity + 1, product }
                   : item
               ),
             };
           }
           return { items: [...state.items, { product, quantity: 1 }] };
-        }),
+        });
+        return true;
+      },
       removeItem: (productId) =>
         set((state) => ({
           items: state.items.filter((item) => item.product.id !== productId),
@@ -48,7 +52,9 @@ export const useCartStore = create<CartState>()(
             quantity <= 0
               ? state.items.filter((item) => item.product.id !== productId)
               : state.items.map((item) =>
-                  item.product.id === productId ? { ...item, quantity } : item
+                  item.product.id === productId
+                    ? { ...item, quantity: Math.min(quantity, item.product.stock) }
+                    : item
                 ),
         })),
       toggleFavorite: (productId) =>

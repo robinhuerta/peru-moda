@@ -14,6 +14,7 @@ export type Product = {
   slug: string; // Add slug for product detail page linking
   images: string[]; // Add for product gallery
   description: string; // Add for product detail page
+  stock: number;
 };
 
 type ProductCardProps = {
@@ -31,6 +32,7 @@ export default function ProductCard({ product }: ProductCardProps) {
   }, []);
 
   const isFavorite = mounted && favorites.includes(product.id);
+  const outOfStock = product.stock <= 0;
 
   return (
     <article className="group overflow-hidden rounded-[32px] border border-ink/10 bg-brand-900 transition hover:-translate-y-1 hover:border-[#d12a18]/40 hover:shadow-soft">
@@ -43,6 +45,11 @@ export default function ProductCard({ product }: ProductCardProps) {
             className="object-cover transition duration-500 group-hover:scale-105"
             sizes="(max-width: 768px) 100vw, 33vw"
           />
+          {outOfStock && (
+            <span className="absolute left-4 top-4 rounded-full bg-black/80 px-3 py-1 text-xs uppercase tracking-[0.2em] text-white">
+              Agotado
+            </span>
+          )}
         </div>
       </Link>
       <div className="space-y-3 p-6">
@@ -52,9 +59,10 @@ export default function ProductCard({ product }: ProductCardProps) {
         <div className="flex items-center gap-3 pt-4">
           <button
             onClick={() => addItem(product)}
-            className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-black transition hover:bg-slate-100"
+            disabled={outOfStock}
+            className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-black transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            Añadir
+            {outOfStock ? 'Agotado' : 'Añadir'}
           </button>
           <button
             onClick={() => toggleFavorite(product.id)}

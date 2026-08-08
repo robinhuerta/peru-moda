@@ -14,15 +14,16 @@ export default function ProductActions({ product }: { product: Product }) {
   const [size, setSize] = useState(SIZES[1]);
   const [color, setColor] = useState(COLORS[0]);
   const [added, setAdded] = useState(false);
+  const outOfStock = product.stock <= 0;
 
   const handleAddToCart = () => {
-    addItem(product);
+    if (!addItem(product)) return;
     setAdded(true);
     setTimeout(() => setAdded(false), 1500);
   };
 
   const handleBuyNow = () => {
-    addItem(product);
+    if (!addItem(product)) return;
     router.push('/carrito');
   };
 
@@ -63,13 +64,15 @@ export default function ProductActions({ product }: { product: Product }) {
       <div className="flex flex-col gap-4 pt-4 sm:flex-row">
         <button
           onClick={handleAddToCart}
-          className="flex-1 rounded-full bg-white px-6 py-3 text-lg font-semibold text-black transition hover:bg-slate-100"
+          disabled={outOfStock}
+          className="flex-1 rounded-full bg-white px-6 py-3 text-lg font-semibold text-black transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
         >
-          {added ? '✓ Añadido' : 'Añadir al carrito'}
+          {outOfStock ? 'Agotado' : added ? '✓ Añadido' : 'Añadir al carrito'}
         </button>
         <button
           onClick={handleBuyNow}
-          className="flex-1 rounded-full border border-[#d12a18] bg-[#d12a18] px-6 py-3 text-lg font-semibold text-white transition hover:border-red-600 hover:bg-red-600"
+          disabled={outOfStock}
+          className="flex-1 rounded-full border border-[#d12a18] bg-[#d12a18] px-6 py-3 text-lg font-semibold text-white transition hover:border-red-600 hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-40"
         >
           Comprar ahora
         </button>

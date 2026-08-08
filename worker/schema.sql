@@ -23,7 +23,38 @@ CREATE TABLE IF NOT EXISTS products (
   images TEXT NOT NULL DEFAULT '[]',
   description TEXT NOT NULL DEFAULT '',
   vendor_slug TEXT NOT NULL DEFAULT '',
+  stock INTEGER NOT NULL DEFAULT 0,
   activo INTEGER NOT NULL DEFAULT 1,
   orden INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS orders (
+  id TEXT PRIMARY KEY,
+  customer_name TEXT NOT NULL,
+  phone TEXT NOT NULL,
+  dni TEXT NOT NULL DEFAULT '',
+  department TEXT NOT NULL DEFAULT '',
+  province TEXT NOT NULL DEFAULT '',
+  district TEXT NOT NULL DEFAULT '',
+  address TEXT NOT NULL DEFAULT '',
+  address_reference TEXT NOT NULL DEFAULT '',
+  delivery_method TEXT NOT NULL,
+  payment_method TEXT NOT NULL,
+  payment_proof_url TEXT NOT NULL DEFAULT '',
+  notes TEXT NOT NULL DEFAULT '',
+  subtotal REAL NOT NULL,
+  total REAL NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending_confirmation',
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS order_items (
+  id TEXT PRIMARY KEY,
+  order_id TEXT NOT NULL,
+  product_id TEXT NOT NULL,
+  product_name TEXT NOT NULL,
+  price REAL NOT NULL,
+  quantity INTEGER NOT NULL,
+  subtotal REAL NOT NULL
 );
