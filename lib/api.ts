@@ -63,6 +63,7 @@ export type DBVendor = {
   description: string;
   logo: string;
   cover: string;
+  coverBanner: string;
   rating: number;
   sales: number;
   activo: boolean;
@@ -77,6 +78,7 @@ type VendorApiRow = {
   description: string;
   logo: string;
   cover: string;
+  cover_banner: string;
   rating: number;
   sales: number;
   activo: boolean;
@@ -92,6 +94,7 @@ function vendorFromRow(row: VendorApiRow): DBVendor {
     description: row.description,
     logo: row.logo,
     cover: row.cover,
+    coverBanner: row.cover_banner,
     rating: row.rating,
     sales: row.sales,
     activo: row.activo,
@@ -107,6 +110,7 @@ function vendorToBody(vendor: Partial<DBVendor>) {
   if (vendor.description !== undefined) body.description = vendor.description;
   if (vendor.logo !== undefined) body.logo = vendor.logo;
   if (vendor.cover !== undefined) body.cover = vendor.cover;
+  if (vendor.coverBanner !== undefined) body.cover_banner = vendor.coverBanner;
   if (vendor.rating !== undefined) body.rating = vendor.rating;
   if (vendor.sales !== undefined) body.sales = vendor.sales;
   if (vendor.activo !== undefined) body.activo = vendor.activo;

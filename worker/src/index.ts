@@ -30,7 +30,7 @@ const PRODUCT_COLUMNS = [
 ];
 
 const VENDOR_COLUMNS = [
-  'name', 'slug', 'description', 'logo', 'cover', 'rating', 'sales', 'activo', 'orden',
+  'name', 'slug', 'description', 'logo', 'cover', 'cover_banner', 'rating', 'sales', 'activo', 'orden',
 ];
 
 const JSON_FIELDS = new Set(['images']);

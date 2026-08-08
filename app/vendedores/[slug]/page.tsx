@@ -29,7 +29,7 @@ export default async function VendorStorePage({ params }: VendorStorePageProps) 
         <div className="mx-auto max-w-6xl">
           <div className="mb-10 overflow-hidden rounded-[32px] border border-ink/10 bg-brand-900 shadow-soft">
             <div className="relative h-64">
-              <Image src={vendor.cover} alt={vendor.name} fill className="object-cover" sizes="100vw" />
+              <Image src={vendor.coverBanner || vendor.cover} alt={vendor.name} fill className="object-cover" sizes="100vw" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
               <div className="absolute inset-x-0 bottom-0 flex items-end gap-4 p-10">
                 {vendor.logo && (

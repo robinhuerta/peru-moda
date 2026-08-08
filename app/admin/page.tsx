@@ -26,6 +26,7 @@ const EMPTY_VENDOR: Omit<DBVendor, 'id' | 'createdAt'> = {
   description: '',
   logo: '',
   cover: '',
+  coverBanner: '',
   rating: 5,
   sales: 0,
   activo: true,
@@ -60,6 +61,7 @@ export default function AdminPage() {
   const [vendorSaving, setVendorSaving] = useState(false);
   const [logoUploading, setLogoUploading] = useState(false);
   const [coverUploading, setCoverUploading] = useState(false);
+  const [coverBannerUploading, setCoverBannerUploading] = useState(false);
   const [vendorDeleteId, setVendorDeleteId] = useState<string | null>(null);
 
   const mainFileRef = useRef<HTMLInputElement>(null);
@@ -67,6 +69,7 @@ export default function AdminPage() {
   const bulkFileRef = useRef<HTMLInputElement>(null);
   const logoFileRef = useRef<HTMLInputElement>(null);
   const coverFileRef = useRef<HTMLInputElement>(null);
+  const coverBannerFileRef = useRef<HTMLInputElement>(null);
 
   const load = async (password: string) => {
     setLoading(true);
@@ -270,6 +273,16 @@ export default function AdminPage() {
       vfield('cover', url);
     } finally {
       setCoverUploading(false);
+    }
+  };
+
+  const handleCoverBannerUpload = async (file: File) => {
+    setCoverBannerUploading(true);
+    try {
+      const url = await api.upload(file, pw);
+      vfield('coverBanner', url);
+    } finally {
+      setCoverBannerUploading(false);
     }
   };
 
@@ -702,7 +715,7 @@ export default function AdminPage() {
               </div>
 
               <div>
-                <label className="admin-label">Foto de portada</label>
+                <label className="admin-label">Foto de portada (tarjeta, ~3:2)</label>
                 <div className="flex items-center gap-3">
                   {vendorForm.cover ? (
                     <div className="group relative h-20 w-32 flex-shrink-0">
@@ -731,6 +744,40 @@ export default function AdminPage() {
                     onChange={(e) => e.target.files?.[0] && handleCoverUpload(e.target.files[0])}
                   />
                 </div>
+                <p className="mt-1 text-[11px] text-slate-500">Se usa en la tarjeta del listado de vendedores. Recomendado: 1200×800px.</p>
+              </div>
+
+              <div>
+                <label className="admin-label">Banner de tienda (ancho, ~4.5:1)</label>
+                <div className="flex items-center gap-3">
+                  {vendorForm.coverBanner ? (
+                    <div className="group relative h-16 w-full flex-shrink-0">
+                      <Image src={vendorForm.coverBanner} alt="" fill className="rounded-xl border-2 border-[#d12a18] object-cover" sizes="320px" />
+                      <button
+                        onClick={() => vfield('coverBanner', '')}
+                        className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => coverBannerFileRef.current?.click()}
+                      className="flex h-16 w-full flex-shrink-0 flex-col items-center justify-center rounded-xl border-2 border-dashed border-white/20 text-slate-400 transition hover:border-[#d12a18] hover:text-[#d12a18]"
+                    >
+                      <span className="text-2xl leading-none">+</span>
+                      <span className="mt-1 text-[9px]">{coverBannerUploading ? 'Subiendo...' : 'Subir'}</span>
+                    </button>
+                  )}
+                  <input
+                    ref={coverBannerFileRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => e.target.files?.[0] && handleCoverBannerUpload(e.target.files[0])}
+                  />
+                </div>
+                <p className="mt-1 text-[11px] text-slate-500">Se usa en el banner ancho de la página de la tienda. Recomendado: 1800×400px. Si se deja vacío, se usa la foto de portada.</p>
               </div>
 
               <div>
