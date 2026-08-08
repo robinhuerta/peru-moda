@@ -41,7 +41,7 @@ export default function Logo({ className }: { className?: string }) {
   return (
     <span className={`inline-flex items-center gap-2.5 ${className ?? ''}`}>
       <LogoMark className="h-8 w-8 shrink-0" />
-      <span className="text-xl font-black tracking-tight text-white">
+      <span className="text-xl font-black tracking-tight text-ink">
         Perú<span className="text-[#d12a18]">&</span>Moda
       </span>
     </span>

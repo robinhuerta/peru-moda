@@ -9,11 +9,12 @@ const config: Config = {
     extend: {
       colors: {
         brand: {
-          950: '#090909',
-          900: '#111111',
-          800: '#1f1f1f',
+          950: 'rgb(var(--brand-950) / <alpha-value>)',
+          900: 'rgb(var(--brand-900) / <alpha-value>)',
+          800: 'rgb(var(--brand-800) / <alpha-value>)',
           accent: '#d12a18'
-        }
+        },
+        ink: 'rgb(var(--ink) / <alpha-value>)'
       },
       boxShadow: {
         soft: '0 25px 80px rgba(0,0,0,0.18)'

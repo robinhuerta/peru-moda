@@ -31,13 +31,13 @@ export default function CartPage() {
 
   if (confirmed) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-brand-950 px-6 text-center text-white">
+      <main className="flex min-h-screen items-center justify-center bg-brand-950 px-6 text-center text-ink">
         <div className="max-w-md space-y-6">
           <span className="inline-flex rounded-full bg-[#d12a18]/15 px-4 py-2 text-sm uppercase tracking-[0.3em] text-[#d12a18]">
             Pedido confirmado
           </span>
           <h1 className="text-4xl font-black tracking-tight">¡Gracias por tu compra!</h1>
-          <p className="text-lg text-slate-300">
+          <p className="text-lg text-ink/70">
             Hemos recibido tu pedido y te contactaremos pronto para coordinar la entrega.
           </p>
           <Link
@@ -52,19 +52,19 @@ export default function CartPage() {
   }
 
   return (
-    <main className="min-h-screen bg-brand-950 text-white">
+    <main className="min-h-screen bg-brand-950 text-ink">
       <section className="relative overflow-hidden px-6 py-16 sm:px-10 lg:px-16">
         <div className="mx-auto max-w-4xl">
-          <div className="mb-10 rounded-[32px] border border-white/10 bg-brand-900 p-10 shadow-soft">
+          <div className="mb-10 rounded-[32px] border border-ink/10 bg-brand-900 p-10 shadow-soft">
             <span className="inline-flex rounded-full bg-[#d12a18]/15 px-4 py-2 text-sm uppercase tracking-[0.3em] text-[#d12a18]">
               Tu compra
             </span>
-            <h1 className="mt-6 text-4xl font-black tracking-tight text-white sm:text-5xl">Carrito</h1>
+            <h1 className="mt-6 text-4xl font-black tracking-tight text-ink sm:text-5xl">Carrito</h1>
           </div>
 
           {items.length === 0 ? (
-            <div className="rounded-[32px] border border-white/10 bg-brand-900 p-10 text-center">
-              <p className="text-lg text-slate-300">Tu carrito está vacío.</p>
+            <div className="rounded-[32px] border border-ink/10 bg-brand-900 p-10 text-center">
+              <p className="text-lg text-ink/70">Tu carrito está vacío.</p>
               <Link
                 href="/"
                 className="mt-6 inline-block rounded-full bg-white px-6 py-3 text-sm font-semibold text-black transition hover:bg-slate-100"
@@ -77,46 +77,46 @@ export default function CartPage() {
               {items.map((item) => (
                 <div
                   key={item.product.id}
-                  className="flex flex-col gap-4 rounded-[32px] border border-white/10 bg-brand-900 p-6 sm:flex-row sm:items-center"
+                  className="flex flex-col gap-4 rounded-[32px] border border-ink/10 bg-brand-900 p-6 sm:flex-row sm:items-center"
                 >
                   <div className="relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-2xl bg-slate-900">
                     <Image src={item.product.image} alt={item.product.name} fill className="object-cover" sizes="96px" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-white">{item.product.name}</h3>
+                    <h3 className="text-lg font-semibold text-ink">{item.product.name}</h3>
                     <p className="text-[#d12a18] font-bold">{item.product.price}</p>
                   </div>
                   <div className="flex items-center gap-3">
                     <button
                       onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
-                      className="flex h-8 w-8 items-center justify-center rounded-full border border-white/20 text-white transition hover:border-[#d12a18]"
+                      className="flex h-8 w-8 items-center justify-center rounded-full border border-ink/20 text-ink transition hover:border-[#d12a18]"
                     >
                       −
                     </button>
                     <span className="w-6 text-center">{item.quantity}</span>
                     <button
                       onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
-                      className="flex h-8 w-8 items-center justify-center rounded-full border border-white/20 text-white transition hover:border-[#d12a18]"
+                      className="flex h-8 w-8 items-center justify-center rounded-full border border-ink/20 text-ink transition hover:border-[#d12a18]"
                     >
                       +
                     </button>
                   </div>
-                  <p className="w-24 text-right font-semibold text-white">
+                  <p className="w-24 text-right font-semibold text-ink">
                     {formatPrice(parsePrice(item.product.price) * item.quantity)}
                   </p>
                   <button
                     onClick={() => removeItem(item.product.id)}
-                    className="text-sm text-slate-400 transition hover:text-[#d12a18]"
+                    className="text-sm text-ink/50 transition hover:text-[#d12a18]"
                   >
                     Eliminar
                   </button>
                 </div>
               ))}
 
-              <div className="flex flex-col gap-4 rounded-[32px] border border-white/10 bg-brand-900 p-8 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-col gap-4 rounded-[32px] border border-ink/10 bg-brand-900 p-8 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="text-sm uppercase tracking-[0.2em] text-slate-400">Total</p>
-                  <p className="text-3xl font-black text-white">{formatPrice(total)}</p>
+                  <p className="text-sm uppercase tracking-[0.2em] text-ink/50">Total</p>
+                  <p className="text-3xl font-black text-ink">{formatPrice(total)}</p>
                 </div>
                 <button
                   onClick={handleCheckout}

@@ -33,7 +33,7 @@ export default function ProductCard({ product }: ProductCardProps) {
   const isFavorite = mounted && favorites.includes(product.id);
 
   return (
-    <article className="group overflow-hidden rounded-[32px] border border-white/10 bg-brand-900 transition hover:-translate-y-1 hover:border-[#d12a18]/40 hover:shadow-soft">
+    <article className="group overflow-hidden rounded-[32px] border border-ink/10 bg-brand-900 transition hover:-translate-y-1 hover:border-[#d12a18]/40 hover:shadow-soft">
       <Link href={`/producto/${product.slug}`}>
         <div className="relative aspect-[4/5] overflow-hidden bg-slate-900">
           <Image
@@ -46,8 +46,8 @@ export default function ProductCard({ product }: ProductCardProps) {
         </div>
       </Link>
       <div className="space-y-3 p-6">
-        <span className="inline-flex rounded-full bg-white/5 px-3 py-1 text-xs uppercase tracking-[0.2em] text-slate-300">{product.tag}</span>
-        <h3 className="text-xl font-semibold text-white">{product.name}</h3>
+        <span className="inline-flex rounded-full bg-ink/5 px-3 py-1 text-xs uppercase tracking-[0.2em] text-ink/70">{product.tag}</span>
+        <h3 className="text-xl font-semibold text-ink">{product.name}</h3>
         <p className="text-lg font-bold text-[#d12a18]">{product.price}</p>
         <div className="flex items-center gap-3 pt-4">
           <button
@@ -61,7 +61,7 @@ export default function ProductCard({ product }: ProductCardProps) {
             className={`rounded-full border px-4 py-2 text-sm transition ${
               isFavorite
                 ? 'border-[#d12a18] bg-[#d12a18]/15 text-[#d12a18]'
-                : 'border-white/20 text-white hover:border-[#d12a18]'
+                : 'border-ink/20 text-ink hover:border-[#d12a18]'
             }`}
           >
             {isFavorite ? '♥ Favorito' : 'Favorito'}

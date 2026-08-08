@@ -9,7 +9,7 @@ export default async function CatalogPage() {
   const products = await api.listProducts({ revalidate: 30 });
 
   return (
-    <main className="min-h-screen bg-brand-950 text-white">
+    <main className="min-h-screen bg-brand-950 text-ink">
       <Hero products={products} />
       <LogoMarquee products={products} />
 
@@ -20,14 +20,14 @@ export default async function CatalogPage() {
               <span className="inline-flex rounded-full bg-[#d12a18]/15 px-4 py-2 text-sm uppercase tracking-[0.3em] text-[#d12a18]">
                 Catálogo
               </span>
-              <h2 className="mt-4 text-3xl font-black tracking-tight text-white sm:text-4xl">
+              <h2 className="mt-4 text-3xl font-black tracking-tight text-ink sm:text-4xl">
                 Todas las gorras
               </h2>
             </div>
           </div>
 
           {products.length === 0 ? (
-            <p className="text-slate-400">Aún no hay productos publicados.</p>
+            <p className="text-ink/50">Aún no hay productos publicados.</p>
           ) : (
             <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {products.map((product) => (

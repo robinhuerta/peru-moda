@@ -13,7 +13,7 @@ type Vendor = {
 
 export default function VendorPanel({ vendor }: { vendor: Vendor }) {
   return (
-    <article className="group overflow-hidden rounded-[32px] border border-white/10 bg-brand-900 transition hover:-translate-y-1 hover:border-[#d12a18]/40 hover:shadow-soft">
+    <article className="group overflow-hidden rounded-[32px] border border-ink/10 bg-brand-900 transition hover:-translate-y-1 hover:border-[#d12a18]/40 hover:shadow-soft">
       <div className="relative h-64 overflow-hidden bg-slate-900">
         <Image
           src={vendor.cover}
@@ -35,12 +35,12 @@ export default function VendorPanel({ vendor }: { vendor: Vendor }) {
         </div>
       </div>
       <div className="space-y-4 p-6">
-        <p className="text-sm text-slate-300">{vendor.description}</p>
+        <p className="text-sm text-ink/70">{vendor.description}</p>
         <div className="flex flex-col gap-3 text-sm sm:flex-row sm:items-center sm:justify-between">
-          <span className="inline-flex items-center gap-2 rounded-full bg-white/5 px-4 py-2 text-white/90">
+          <span className="inline-flex items-center gap-2 rounded-full bg-ink/5 px-4 py-2 text-ink/90">
             <strong>{vendor.rating.toFixed(1)}</strong> ★
           </span>
-          <span className="inline-flex items-center gap-2 rounded-full bg-white/5 px-4 py-2 text-white/90">
+          <span className="inline-flex items-center gap-2 rounded-full bg-ink/5 px-4 py-2 text-ink/90">
             {vendor.sales} ventas
           </span>
         </div>

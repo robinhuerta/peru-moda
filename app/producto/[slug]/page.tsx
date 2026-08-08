@@ -28,7 +28,7 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
   const relatedProducts = products.filter((p) => p.slug !== slug).slice(0, 2);
 
   return (
-    <main className="min-h-screen bg-brand-950 text-white">
+    <main className="min-h-screen bg-brand-950 text-ink">
       <section className="relative overflow-hidden px-6 py-16 sm:px-10 lg:px-16">
         <div className="mx-auto max-w-6xl">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
@@ -38,10 +38,10 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
             {/* Product Details */}
             <div className="space-y-8">
               <div>
-                <span className="inline-flex rounded-full bg-white/5 px-3 py-1 text-xs uppercase tracking-[0.2em] text-slate-300">
+                <span className="inline-flex rounded-full bg-ink/5 px-3 py-1 text-xs uppercase tracking-[0.2em] text-ink/70">
                   {product.tag}
                 </span>
-                <h1 className="mt-4 text-4xl font-black tracking-tight text-white sm:text-5xl">
+                <h1 className="mt-4 text-4xl font-black tracking-tight text-ink sm:text-5xl">
                   {product.name}
                 </h1>
                 <p className="mt-4 text-3xl font-bold text-[#d12a18]">
@@ -50,34 +50,34 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
               </div>
 
               <div className="space-y-4">
-                <h2 className="text-xl font-semibold text-white">Descripción</h2>
-                <p className="text-lg text-slate-300">{product.description}</p>
+                <h2 className="text-xl font-semibold text-ink">Descripción</h2>
+                <p className="text-lg text-ink/70">{product.description}</p>
               </div>
 
               <ProductActions product={product} />
 
               {/* Seller Info */}
               {vendor && (
-                <div className="space-y-4 pt-8 border-t border-white/10">
-                  <h2 className="text-xl font-semibold text-white">Información del Vendedor</h2>
-                  <p className="text-slate-300">
+                <div className="space-y-4 pt-8 border-t border-ink/10">
+                  <h2 className="text-xl font-semibold text-ink">Información del Vendedor</h2>
+                  <p className="text-ink/70">
                     Vendido por: <Link href={`/vendedores/${vendor.slug}`} className="text-[#d12a18] hover:underline">{vendor.name}</Link>
                   </p>
-                  <p className="text-slate-300">Calificación: {vendor.rating.toFixed(1)} ★</p>
-                  <p className="text-slate-300">Tiempo de entrega estimado: 3-5 días hábiles</p>
+                  <p className="text-ink/70">Calificación: {vendor.rating.toFixed(1)} ★</p>
+                  <p className="text-ink/70">Tiempo de entrega estimado: 3-5 días hábiles</p>
                 </div>
               )}
 
               {/* Placeholder for Reviews */}
-              <div className="space-y-4 pt-8 border-t border-white/10">
-                <h2 className="text-xl font-semibold text-white">Reseñas de Clientes</h2>
-                <p className="text-slate-300">Aún no hay reseñas para este producto.</p>
+              <div className="space-y-4 pt-8 border-t border-ink/10">
+                <h2 className="text-xl font-semibold text-ink">Reseñas de Clientes</h2>
+                <p className="text-ink/70">Aún no hay reseñas para este producto.</p>
               </div>
 
               {/* Related Products */}
               {relatedProducts.length > 0 && (
-                <div className="space-y-4 pt-8 border-t border-white/10">
-                  <h2 className="text-xl font-semibold text-white">Productos Relacionados</h2>
+                <div className="space-y-4 pt-8 border-t border-ink/10">
+                  <h2 className="text-xl font-semibold text-ink">Productos Relacionados</h2>
                   <div className="grid grid-cols-2 gap-4">
                     {relatedProducts.map((related) => (
                       <Link

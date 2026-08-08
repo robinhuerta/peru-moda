@@ -302,12 +302,12 @@ export default function AdminPage() {
   };
 
   if (checkingAuth) {
-    return <main className="min-h-screen bg-brand-950" />;
+    return <main className="dark min-h-screen bg-brand-950" />;
   }
 
   if (!auth) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-brand-950 px-6 text-white">
+      <main className="dark flex min-h-screen items-center justify-center bg-brand-950 px-6 text-white">
         <form onSubmit={login} className="w-full max-w-sm space-y-4">
           <h1 className="text-center text-2xl font-black tracking-tight">Panel Admin</h1>
           <p className="text-center text-sm text-slate-400">Perú & Moda</p>
@@ -334,7 +334,7 @@ export default function AdminPage() {
   }
 
   return (
-    <main className="min-h-screen bg-brand-950 text-white">
+    <main className="dark min-h-screen bg-brand-950 text-white">
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 px-6 py-4">
         <div className="flex items-center gap-4">
           <h1 className="text-lg font-black tracking-tight">Admin</h1>

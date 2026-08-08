@@ -29,7 +29,7 @@ export default function ProductActions({ product }: { product: Product }) {
   return (
     <>
       <div className="space-y-4">
-        <h2 className="text-xl font-semibold text-white">Opciones</h2>
+        <h2 className="text-xl font-semibold text-ink">Opciones</h2>
         <div className="flex flex-wrap gap-3">
           {SIZES.map((s) => (
             <button
@@ -38,7 +38,7 @@ export default function ProductActions({ product }: { product: Product }) {
               className={`rounded-full border px-4 py-2 text-sm transition ${
                 size === s
                   ? 'border-[#d12a18] bg-[#d12a18]/15 text-[#d12a18]'
-                  : 'border-white/20 text-white hover:border-[#d12a18]'
+                  : 'border-ink/20 text-ink hover:border-[#d12a18]'
               }`}
             >
               Talla {s}
@@ -51,7 +51,7 @@ export default function ProductActions({ product }: { product: Product }) {
               className={`rounded-full border px-4 py-2 text-sm transition ${
                 color === c
                   ? 'border-[#d12a18] bg-[#d12a18]/15 text-[#d12a18]'
-                  : 'border-white/20 text-white hover:border-[#d12a18]'
+                  : 'border-ink/20 text-ink hover:border-[#d12a18]'
               }`}
             >
               Color {c}

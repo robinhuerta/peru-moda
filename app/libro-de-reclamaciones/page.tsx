@@ -69,54 +69,54 @@ export default function ComplaintBookPage() {
 
   if (submitted) {
     return (
-      <main className="min-h-screen bg-brand-950 px-6 py-16 text-white sm:px-10 lg:px-16">
-        <div className="mx-auto max-w-3xl space-y-8 rounded-[32px] border border-white/10 bg-brand-900 p-10 shadow-soft print:border-0 print:bg-white print:text-black">
+      <main className="min-h-screen bg-brand-950 px-6 py-16 text-ink sm:px-10 lg:px-16">
+        <div className="mx-auto max-w-3xl space-y-8 rounded-[32px] border border-ink/10 bg-brand-900 p-10 shadow-soft print:border-0 print:bg-white print:text-black">
           <div>
             <span className="inline-flex rounded-full bg-[#d12a18]/15 px-4 py-2 text-sm uppercase tracking-[0.3em] text-[#d12a18]">
               Reclamo registrado
             </span>
             <h1 className="mt-4 text-3xl font-black tracking-tight">Código: {submitted.code}</h1>
-            <p className="mt-2 text-slate-300 print:text-black">
+            <p className="mt-2 text-ink/70 print:text-black">
               Fecha de registro: {submitted.fecha}
             </p>
           </div>
 
           <div className="grid gap-6 sm:grid-cols-2">
             <div>
-              <h2 className="text-sm uppercase tracking-[0.2em] text-slate-400 print:text-black">Proveedor</h2>
-              <p className="mt-2 text-slate-200 print:text-black">{company.razonSocial}</p>
-              <p className="text-slate-200 print:text-black">RUC: {company.ruc}</p>
-              <p className="text-slate-200 print:text-black">{company.direccion}</p>
+              <h2 className="text-sm uppercase tracking-[0.2em] text-ink/50 print:text-black">Proveedor</h2>
+              <p className="mt-2 text-ink/80 print:text-black">{company.razonSocial}</p>
+              <p className="text-ink/80 print:text-black">RUC: {company.ruc}</p>
+              <p className="text-ink/80 print:text-black">{company.direccion}</p>
             </div>
             <div>
-              <h2 className="text-sm uppercase tracking-[0.2em] text-slate-400 print:text-black">Consumidor</h2>
-              <p className="mt-2 text-slate-200 print:text-black">{submitted.nombre}</p>
-              <p className="text-slate-200 print:text-black">{submitted.documento} {submitted.numeroDocumento}</p>
-              <p className="text-slate-200 print:text-black">{submitted.domicilio}</p>
-              <p className="text-slate-200 print:text-black">{submitted.telefono} · {submitted.email}</p>
+              <h2 className="text-sm uppercase tracking-[0.2em] text-ink/50 print:text-black">Consumidor</h2>
+              <p className="mt-2 text-ink/80 print:text-black">{submitted.nombre}</p>
+              <p className="text-ink/80 print:text-black">{submitted.documento} {submitted.numeroDocumento}</p>
+              <p className="text-ink/80 print:text-black">{submitted.domicilio}</p>
+              <p className="text-ink/80 print:text-black">{submitted.telefono} · {submitted.email}</p>
               {submitted.esMenor && (
-                <p className="text-slate-200 print:text-black">Apoderado: {submitted.apoderado}</p>
+                <p className="text-ink/80 print:text-black">Apoderado: {submitted.apoderado}</p>
               )}
             </div>
           </div>
 
           <div>
-            <h2 className="text-sm uppercase tracking-[0.2em] text-slate-400 print:text-black">Bien contratado</h2>
-            <p className="mt-2 text-slate-200 print:text-black">Tipo: {submitted.tipoBien} · Monto reclamado: S/ {submitted.monto || '0'}</p>
-            <p className="text-slate-200 print:text-black">{submitted.descripcionBien}</p>
+            <h2 className="text-sm uppercase tracking-[0.2em] text-ink/50 print:text-black">Bien contratado</h2>
+            <p className="mt-2 text-ink/80 print:text-black">Tipo: {submitted.tipoBien} · Monto reclamado: S/ {submitted.monto || '0'}</p>
+            <p className="text-ink/80 print:text-black">{submitted.descripcionBien}</p>
           </div>
 
           <div>
-            <h2 className="text-sm uppercase tracking-[0.2em] text-slate-400 print:text-black">Detalle del {submitted.tipoReclamo}</h2>
-            <p className="mt-2 whitespace-pre-wrap text-slate-200 print:text-black">{submitted.detalle}</p>
+            <h2 className="text-sm uppercase tracking-[0.2em] text-ink/50 print:text-black">Detalle del {submitted.tipoReclamo}</h2>
+            <p className="mt-2 whitespace-pre-wrap text-ink/80 print:text-black">{submitted.detalle}</p>
           </div>
 
           <div>
-            <h2 className="text-sm uppercase tracking-[0.2em] text-slate-400 print:text-black">Pedido del consumidor</h2>
-            <p className="mt-2 whitespace-pre-wrap text-slate-200 print:text-black">{submitted.pedido}</p>
+            <h2 className="text-sm uppercase tracking-[0.2em] text-ink/50 print:text-black">Pedido del consumidor</h2>
+            <p className="mt-2 whitespace-pre-wrap text-ink/80 print:text-black">{submitted.pedido}</p>
           </div>
 
-          <p className="text-sm text-slate-400 print:text-black">
+          <p className="text-sm text-ink/50 print:text-black">
             De acuerdo con el Código de Protección y Defensa del Consumidor, el proveedor deberá dar respuesta
             en un plazo no mayor a 30 días calendario. Guarda este código para hacer seguimiento a tu reclamo.
           </p>
@@ -130,7 +130,7 @@ export default function ComplaintBookPage() {
             </button>
             <Link
               href="/"
-              className="rounded-full border border-white/20 px-6 py-3 text-sm text-white transition hover:border-[#d12a18]"
+              className="rounded-full border border-ink/20 px-6 py-3 text-sm text-ink transition hover:border-[#d12a18]"
             >
               Volver al inicio
             </Link>
@@ -141,27 +141,27 @@ export default function ComplaintBookPage() {
   }
 
   return (
-    <main className="min-h-screen bg-brand-950 px-6 py-16 text-white sm:px-10 lg:px-16">
+    <main className="min-h-screen bg-brand-950 px-6 py-16 text-ink sm:px-10 lg:px-16">
       <div className="mx-auto max-w-3xl">
-        <div className="mb-10 rounded-[32px] border border-white/10 bg-brand-900 p-10 shadow-soft">
+        <div className="mb-10 rounded-[32px] border border-ink/10 bg-brand-900 p-10 shadow-soft">
           <span className="inline-flex rounded-full bg-[#d12a18]/15 px-4 py-2 text-sm uppercase tracking-[0.3em] text-[#d12a18]">
             Libro de Reclamaciones
           </span>
           <h1 className="mt-6 text-4xl font-black tracking-tight sm:text-5xl">Libro de Reclamaciones Virtual</h1>
-          <p className="mt-4 max-w-2xl text-lg text-slate-300">
+          <p className="mt-4 max-w-2xl text-lg text-ink/70">
             Conforme al Código de Protección y Defensa del Consumidor (Ley N.º 29571). La presentación de un reclamo
             no impide acudir a otras vías de solución de controversias ni es requisito previo para interponer una denuncia ante INDECOPI.
           </p>
-          <div className="mt-6 grid gap-1 text-sm text-slate-300">
-            <p><strong className="text-white">Razón social:</strong> {company.razonSocial}</p>
-            <p><strong className="text-white">RUC:</strong> {company.ruc}</p>
-            <p><strong className="text-white">Dirección:</strong> {company.direccion}</p>
+          <div className="mt-6 grid gap-1 text-sm text-ink/70">
+            <p><strong className="text-ink">Razón social:</strong> {company.razonSocial}</p>
+            <p><strong className="text-ink">RUC:</strong> {company.ruc}</p>
+            <p><strong className="text-ink">Dirección:</strong> {company.direccion}</p>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-10">
-          <fieldset className="space-y-4 rounded-[32px] border border-white/10 bg-brand-900 p-8">
-            <legend className="px-2 text-lg font-semibold text-white">1. Datos del consumidor reclamante</legend>
+          <fieldset className="space-y-4 rounded-[32px] border border-ink/10 bg-brand-900 p-8">
+            <legend className="px-2 text-lg font-semibold text-ink">1. Datos del consumidor reclamante</legend>
             <div className="grid gap-4 sm:grid-cols-2">
               <input name="nombre" required placeholder="Nombres y apellidos" className="input" />
               <div className="flex gap-2">
@@ -176,7 +176,7 @@ export default function ComplaintBookPage() {
               <input name="telefono" required placeholder="Teléfono" className="input" />
               <input type="email" name="email" required placeholder="Correo electrónico" className="input" />
             </div>
-            <label className="flex items-center gap-2 text-sm text-slate-300">
+            <label className="flex items-center gap-2 text-sm text-ink/70">
               <input type="checkbox" checked={esMenor} onChange={(e) => setEsMenor(e.target.checked)} />
               El reclamante es menor de edad
             </label>
@@ -185,8 +185,8 @@ export default function ComplaintBookPage() {
             )}
           </fieldset>
 
-          <fieldset className="space-y-4 rounded-[32px] border border-white/10 bg-brand-900 p-8">
-            <legend className="px-2 text-lg font-semibold text-white">2. Datos del bien contratado</legend>
+          <fieldset className="space-y-4 rounded-[32px] border border-ink/10 bg-brand-900 p-8">
+            <legend className="px-2 text-lg font-semibold text-ink">2. Datos del bien contratado</legend>
             <div className="grid gap-4 sm:grid-cols-2">
               <select name="tipoBien" required className="input">
                 <option value="Producto">Producto</option>
@@ -203,9 +203,9 @@ export default function ComplaintBookPage() {
             />
           </fieldset>
 
-          <fieldset className="space-y-4 rounded-[32px] border border-white/10 bg-brand-900 p-8">
-            <legend className="px-2 text-lg font-semibold text-white">3. Detalle de la reclamación</legend>
-            <div className="flex gap-6 text-sm text-slate-300">
+          <fieldset className="space-y-4 rounded-[32px] border border-ink/10 bg-brand-900 p-8">
+            <legend className="px-2 text-lg font-semibold text-ink">3. Detalle de la reclamación</legend>
+            <div className="flex gap-6 text-sm text-ink/70">
               <label className="flex items-center gap-2">
                 <input type="radio" name="tipoReclamo" value="Reclamo" defaultChecked required />
                 Reclamo (disconformidad con el producto o servicio)
@@ -224,8 +224,8 @@ export default function ComplaintBookPage() {
             />
           </fieldset>
 
-          <fieldset className="space-y-4 rounded-[32px] border border-white/10 bg-brand-900 p-8">
-            <legend className="px-2 text-lg font-semibold text-white">4. Pedido del consumidor</legend>
+          <fieldset className="space-y-4 rounded-[32px] border border-ink/10 bg-brand-900 p-8">
+            <legend className="px-2 text-lg font-semibold text-ink">4. Pedido del consumidor</legend>
             <textarea
               name="pedido"
               required
@@ -235,7 +235,7 @@ export default function ComplaintBookPage() {
             />
           </fieldset>
 
-          <label className="flex items-start gap-3 text-sm text-slate-300">
+          <label className="flex items-start gap-3 text-sm text-ink/70">
             <input type="checkbox" required className="mt-1" />
             Declaro que la información consignada es veraz y autorizo su tratamiento para la atención de este reclamo.
           </label>
@@ -253,13 +253,13 @@ export default function ComplaintBookPage() {
         .input {
           width: 100%;
           border-radius: 16px;
-          border: 1px solid rgba(255, 255, 255, 0.15);
-          background: rgba(255, 255, 255, 0.03);
+          border: 1px solid rgb(var(--ink) / 0.15);
+          background: rgb(var(--ink) / 0.03);
           padding: 0.75rem 1rem;
-          color: white;
+          color: rgb(var(--ink));
         }
         .input::placeholder {
-          color: rgba(255, 255, 255, 0.4);
+          color: rgb(var(--ink) / 0.4);
         }
         .input:focus {
           outline: none;
