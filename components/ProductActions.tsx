@@ -5,14 +5,12 @@ import { useState } from 'react';
 import { useCartStore } from '@/lib/cartStore';
 import type { Product } from '@/components/ProductCard';
 
-const SIZES = ['S', 'M', 'L', 'XL'];
-const COLORS = ['Negro', 'Beige', 'Rojo'];
+const SIZES = ['S/M', 'M/L', 'L/XL'];
 
 export default function ProductActions({ product }: { product: Product }) {
   const router = useRouter();
   const addItem = useCartStore((state) => state.addItem);
   const [size, setSize] = useState(SIZES[1]);
-  const [color, setColor] = useState(COLORS[0]);
   const [added, setAdded] = useState(false);
   const outOfStock = product.stock <= 0;
 
@@ -30,7 +28,7 @@ export default function ProductActions({ product }: { product: Product }) {
   return (
     <>
       <div className="space-y-4">
-        <h2 className="text-xl font-semibold text-ink">Opciones</h2>
+        <h2 className="text-xl font-semibold text-ink">Talla</h2>
         <div className="flex flex-wrap gap-3">
           {SIZES.map((s) => (
             <button
@@ -43,19 +41,6 @@ export default function ProductActions({ product }: { product: Product }) {
               }`}
             >
               Talla {s}
-            </button>
-          ))}
-          {COLORS.map((c) => (
-            <button
-              key={c}
-              onClick={() => setColor(c)}
-              className={`rounded-full border px-4 py-2 text-sm transition ${
-                color === c
-                  ? 'border-[#d12a18] bg-[#d12a18]/15 text-[#d12a18]'
-                  : 'border-ink/20 text-ink hover:border-[#d12a18]'
-              }`}
-            >
-              Color {c}
             </button>
           ))}
         </div>
