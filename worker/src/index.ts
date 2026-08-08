@@ -26,7 +26,7 @@ function requireAuth(req: Request, env: Env): Response | null {
 
 const PRODUCT_COLUMNS = [
   'name', 'slug', 'price', 'tag', 'image', 'images', 'description',
-  'vendor_slug', 'stock', 'activo', 'orden',
+  'vendor_slug', 'stock', 'needs_restock', 'activo', 'orden',
 ];
 
 const VENDOR_COLUMNS = [
@@ -35,6 +35,7 @@ const VENDOR_COLUMNS = [
 
 const JSON_FIELDS = new Set(['images']);
 const NUMBER_FIELDS = new Set(['stock', 'orden', 'rating', 'sales']);
+const BOOLEAN_FIELDS = new Set(['activo', 'needs_restock']);
 
 function rowOut(row: Record<string, unknown>): Record<string, unknown> {
   const out: Record<string, unknown> = { ...row };
@@ -43,13 +44,15 @@ function rowOut(row: Record<string, unknown>): Record<string, unknown> {
       try { out[f] = JSON.parse(out[f] as string); } catch { out[f] = []; }
     }
   }
-  out.activo = !!out.activo;
+  for (const f of BOOLEAN_FIELDS) {
+    if (f in out) out[f] = !!out[f];
+  }
   return out;
 }
 
 function fieldIn(key: string, value: unknown): unknown {
   if (JSON_FIELDS.has(key)) return JSON.stringify(value ?? []);
-  if (key === 'activo') return value ? 1 : 0;
+  if (BOOLEAN_FIELDS.has(key)) return value ? 1 : 0;
   if (NUMBER_FIELDS.has(key)) return Number(value) || 0;
   return value ?? '';
 }
@@ -254,7 +257,9 @@ async function handleListOrders(env: Env): Promise<Response> {
 
 async function handleUpdateOrderStatus(req: Request, env: Env, id: string): Promise<Response> {
   const body = (await req.json()) as { status?: string };
-  if (body.status !== 'confirmed' && body.status !== 'cancelled') return json({ error: 'invalid status' }, 400);
+  if (body.status !== 'confirmed' && body.status !== 'cancelled' && body.status !== 'delivered') {
+    return json({ error: 'invalid status' }, 400);
+  }
 
   const order = await env.DB.prepare('SELECT status FROM orders WHERE id = ?').bind(id).first<{ status: string }>();
   if (!order) return json({ error: 'not found' }, 404);
@@ -271,6 +276,44 @@ async function handleUpdateOrderStatus(req: Request, env: Env, id: string): Prom
   }
 
   return json({ ok: true });
+}
+
+async function handleCreateCashClosing(req: Request, env: Env): Promise<Response> {
+  const body = (await req.json().catch(() => ({}))) as { date?: string };
+  const date = body.date || new Date().toISOString().slice(0, 10);
+
+  const existing = await env.DB.prepare('SELECT * FROM cash_closings WHERE date = ?').bind(date).first();
+  if (existing) return json(rowOut(existing as Record<string, unknown>), 200);
+
+  const summary = await env.DB.prepare(
+    "SELECT COUNT(*) as total_orders, COALESCE(SUM(total), 0) as total_amount FROM orders WHERE date(created_at) = ? AND status != 'cancelled'"
+  ).bind(date).first<{ total_orders: number; total_amount: number }>();
+
+  const topPayment = await env.DB.prepare(
+    "SELECT payment_method FROM orders WHERE date(created_at) = ? AND status != 'cancelled' GROUP BY payment_method ORDER BY COUNT(*) DESC LIMIT 1"
+  ).bind(date).first<{ payment_method: string }>();
+
+  const id = crypto.randomUUID();
+  const createdAt = new Date().toISOString();
+  const closing = {
+    id,
+    date,
+    total_orders: summary?.total_orders ?? 0,
+    total_amount: summary?.total_amount ?? 0,
+    top_payment_method: topPayment?.payment_method ?? '',
+    created_at: createdAt,
+  };
+
+  await env.DB.prepare(
+    'INSERT INTO cash_closings (id, date, total_orders, total_amount, top_payment_method, created_at) VALUES (?, ?, ?, ?, ?, ?)'
+  ).bind(closing.id, closing.date, closing.total_orders, closing.total_amount, closing.top_payment_method, closing.created_at).run();
+
+  return json(closing, 201);
+}
+
+async function handleListCashClosings(env: Env): Promise<Response> {
+  const { results } = await env.DB.prepare('SELECT * FROM cash_closings ORDER BY date DESC').all();
+  return json(results);
 }
 
 async function handleImageGet(env: Env, key: string): Promise<Response> {
@@ -354,6 +397,13 @@ export default {
           if (authErr) return authErr;
           return await handleUpdateOrderStatus(req, env, parts[2]);
         }
+      }
+
+      if (parts[0] === 'api' && parts[1] === 'cash-closings') {
+        const authErr = requireAuth(req, env);
+        if (authErr) return authErr;
+        if (req.method === 'POST') return await handleCreateCashClosing(req, env);
+        if (req.method === 'GET') return await handleListCashClosings(env);
       }
 
       if (parts[0] === 'api' && parts[1] === 'products') {

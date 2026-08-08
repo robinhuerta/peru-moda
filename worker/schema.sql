@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS products (
   description TEXT NOT NULL DEFAULT '',
   vendor_slug TEXT NOT NULL DEFAULT '',
   stock INTEGER NOT NULL DEFAULT 0,
+  needs_restock INTEGER NOT NULL DEFAULT 0,
   activo INTEGER NOT NULL DEFAULT 1,
   orden INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL
@@ -57,4 +58,13 @@ CREATE TABLE IF NOT EXISTS order_items (
   price REAL NOT NULL,
   quantity INTEGER NOT NULL,
   subtotal REAL NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS cash_closings (
+  id TEXT PRIMARY KEY,
+  date TEXT NOT NULL UNIQUE,
+  total_orders INTEGER NOT NULL,
+  total_amount REAL NOT NULL,
+  top_payment_method TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL
 );

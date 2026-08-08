@@ -4,6 +4,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL as string;
 
 export type DBProduct = Product & {
   vendorSlug: string;
+  needsRestock: boolean;
   activo: boolean;
   orden: number;
   createdAt: string;
@@ -20,6 +21,7 @@ type ApiRow = {
   description: string;
   vendor_slug: string;
   stock: number;
+  needs_restock: boolean;
   activo: boolean;
   orden: number;
   created_at: string;
@@ -37,6 +39,7 @@ function fromRow(row: ApiRow): DBProduct {
     description: row.description,
     vendorSlug: row.vendor_slug,
     stock: row.stock,
+    needsRestock: row.needs_restock,
     activo: row.activo,
     orden: row.orden,
     createdAt: row.created_at,
@@ -54,6 +57,7 @@ function toBody(product: Partial<DBProduct>) {
   if (product.description !== undefined) body.description = product.description;
   if (product.vendorSlug !== undefined) body.vendor_slug = product.vendorSlug;
   if (product.stock !== undefined) body.stock = product.stock;
+  if (product.needsRestock !== undefined) body.needs_restock = product.needsRestock;
   if (product.activo !== undefined) body.activo = product.activo;
   if (product.orden !== undefined) body.orden = product.orden;
   return body;
@@ -123,7 +127,7 @@ function vendorToBody(vendor: Partial<DBVendor>) {
 
 export type DeliveryMethod = 'delivery' | 'pickup';
 export type PaymentMethod = 'transfer' | 'yape' | 'plin' | 'cash';
-export type OrderStatus = 'pending_payment' | 'pending_confirmation' | 'confirmed' | 'cancelled';
+export type OrderStatus = 'pending_payment' | 'pending_confirmation' | 'confirmed' | 'delivered' | 'cancelled';
 
 export type OrderItem = {
   id: string;
@@ -174,6 +178,15 @@ export type CreateOrderPayload = {
 export type CreateOrderResult =
   | { ok: true; id: string; status: OrderStatus; total: number }
   | { ok: false; unavailable: { productId: string; name: string; stock: number }[] };
+
+export type CashClosing = {
+  id: string;
+  date: string;
+  total_orders: number;
+  total_amount: number;
+  top_payment_method: string;
+  created_at: string;
+};
 
 async function request(path: string, options: RequestInit = {}) {
   const res = await fetch(`${API_URL}${path}`, options);
@@ -294,11 +307,25 @@ export const api = {
     return res.json();
   },
 
-  updateOrderStatus: async (id: string, status: 'confirmed' | 'cancelled', password: string) => {
+  updateOrderStatus: async (id: string, status: 'confirmed' | 'cancelled' | 'delivered', password: string) => {
     return request(`/api/orders/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', ...authHeaders(password) },
       body: JSON.stringify({ status }),
     });
+  },
+
+  createCashClosing: async (date: string, password: string): Promise<CashClosing> => {
+    return request('/api/cash-closings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(password) },
+      body: JSON.stringify({ date }),
+    });
+  },
+
+  listCashClosings: async (password: string): Promise<CashClosing[]> => {
+    const res = await fetch(`${API_URL}/api/cash-closings`, { headers: authHeaders(password), cache: 'no-store' });
+    if (!res.ok) throw new Error(`API error ${res.status} listing cash closings`);
+    return res.json();
   },
 };

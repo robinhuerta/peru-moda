@@ -2,10 +2,11 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
-import { api, type DBProduct, type DBVendor, type DBOrder } from '@/lib/api';
+import { api, type DBProduct, type DBVendor, type DBOrder, type CashClosing } from '@/lib/api';
 import { slugify, formatPrice } from '@/lib/utils';
 
 const PW_STORAGE_KEY = 'perumoda-admin-pw';
+const STOCK_THRESHOLD_KEY = 'perumoda-stock-threshold';
 
 const EMPTY_PRODUCT: Omit<DBProduct, 'id' | 'createdAt'> = {
   name: '',
@@ -17,6 +18,7 @@ const EMPTY_PRODUCT: Omit<DBProduct, 'id' | 'createdAt'> = {
   description: '',
   vendorSlug: '',
   stock: 0,
+  needsRestock: false,
   activo: true,
   orden: 0,
 };
@@ -25,6 +27,7 @@ const ORDER_STATUS_LABEL: Record<string, string> = {
   pending_payment: 'Pendiente (contra entrega)',
   pending_confirmation: 'Pendiente de confirmación',
   confirmed: 'Confirmado',
+  delivered: 'Entregado',
   cancelled: 'Cancelado',
 };
 
@@ -53,7 +56,7 @@ export default function AdminPage() {
   const [auth, setAuth] = useState(false);
   const [pwError, setPwError] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
-  const [tab, setTab] = useState<'products' | 'vendors' | 'orders'>('products');
+  const [tab, setTab] = useState<'dashboard' | 'products' | 'vendors' | 'orders'>('dashboard');
 
   const [products, setProducts] = useState<DBProduct[]>([]);
   const [vendors, setVendors] = useState<DBVendor[]>([]);
@@ -61,6 +64,14 @@ export default function AdminPage() {
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [orderActionId, setOrderActionId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Dashboard state
+  const [cashClosings, setCashClosings] = useState<CashClosing[]>([]);
+  const [closingsLoading, setClosingsLoading] = useState(false);
+  const [closingInProgress, setClosingInProgress] = useState(false);
+  const [restockActionId, setRestockActionId] = useState<string | null>(null);
+  const [stockThreshold, setStockThreshold] = useState(5);
+  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().slice(0, 10));
 
   // Product form state
   const [modal, setModal] = useState(false);
@@ -155,20 +166,62 @@ export default function AdminPage() {
     }
   };
 
+  const loadClosings = async () => {
+    setClosingsLoading(true);
+    try {
+      setCashClosings(await api.listCashClosings(pw));
+    } finally {
+      setClosingsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    if (auth && tab === 'orders') {
+    if (auth && (tab === 'orders' || tab === 'dashboard')) {
       loadOrders();
+    }
+    if (auth && tab === 'dashboard') {
+      loadClosings();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [auth, tab]);
 
-  const setOrderStatus = async (id: string, status: 'confirmed' | 'cancelled') => {
+  useEffect(() => {
+    const stored = localStorage.getItem(STOCK_THRESHOLD_KEY);
+    if (stored) setStockThreshold(Number(stored) || 5);
+  }, []);
+
+  const updateThreshold = (value: number) => {
+    setStockThreshold(value);
+    localStorage.setItem(STOCK_THRESHOLD_KEY, String(value));
+  };
+
+  const setOrderStatus = async (id: string, status: 'confirmed' | 'cancelled' | 'delivered') => {
     setOrderActionId(id);
     try {
       await api.updateOrderStatus(id, status, pw);
       await loadOrders();
     } finally {
       setOrderActionId(null);
+    }
+  };
+
+  const closeCashRegister = async (date: string) => {
+    setClosingInProgress(true);
+    try {
+      await api.createCashClosing(date, pw);
+      await loadClosings();
+    } finally {
+      setClosingInProgress(false);
+    }
+  };
+
+  const toggleRestock = async (p: DBProduct) => {
+    setRestockActionId(p.id);
+    try {
+      await api.updateProduct(p.id, { needsRestock: !p.needsRestock }, pw);
+      await load(pw);
+    } finally {
+      setRestockActionId(null);
     }
   };
 
@@ -390,12 +443,54 @@ export default function AdminPage() {
     );
   }
 
+  // ── Dashboard derived data ──────────────────────────────
+  const ordersForSelectedDate = orders.filter((o) => o.created_at.slice(0, 10) === selectedDate);
+  const nonCancelledOrders = ordersForSelectedDate.filter((o) => o.status !== 'cancelled');
+  const dayRevenue = nonCancelledOrders.reduce((sum, o) => sum + o.total, 0);
+  const paymentCounts = nonCancelledOrders.reduce<Record<string, number>>((acc, o) => {
+    acc[o.payment_method] = (acc[o.payment_method] ?? 0) + 1;
+    return acc;
+  }, {});
+  const topPaymentMethod = Object.entries(paymentCounts).sort((a, b) => b[1] - a[1])[0]?.[0];
+  const statusCounts = ordersForSelectedDate.reduce<Record<string, number>>((acc, o) => {
+    acc[o.status] = (acc[o.status] ?? 0) + 1;
+    return acc;
+  }, {});
+
+  const bestSellers = Object.entries(
+    orders
+      .filter((o) => o.status !== 'cancelled')
+      .flatMap((o) => o.items)
+      .reduce<Record<string, number>>((acc, item) => {
+        acc[item.product_name] = (acc[item.product_name] ?? 0) + item.quantity;
+        return acc;
+      }, {})
+  )
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5);
+
+  const lowStockProducts = products
+    .filter((p) => p.activo && p.stock <= stockThreshold)
+    .sort((a, b) => a.stock - b.stock);
+
+  const restockProducts = products.filter((p) => p.needsRestock);
+
+  const todayClosing = cashClosings.find((c) => c.date === selectedDate);
+
   return (
     <main className="dark min-h-screen bg-brand-950 text-white">
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 px-6 py-4">
         <div className="flex items-center gap-4">
           <h1 className="text-lg font-black tracking-tight">Admin</h1>
           <div className="flex items-center gap-1 rounded-full bg-white/10 p-1">
+            <button
+              onClick={() => setTab('dashboard')}
+              className={`rounded-full px-4 py-1.5 text-[11px] font-medium uppercase tracking-widest transition ${
+                tab === 'dashboard' ? 'bg-white text-black' : 'text-white/60 hover:text-white'
+              }`}
+            >
+              Dashboard
+            </button>
             <button
               onClick={() => setTab('products')}
               className={`rounded-full px-4 py-1.5 text-[11px] font-medium uppercase tracking-widest transition ${
@@ -460,6 +555,155 @@ export default function AdminPage() {
           </button>
         </div>
       </div>
+
+      {/* Dashboard */}
+      {tab === 'dashboard' && (
+        <div className="mx-auto max-w-5xl space-y-8 px-6 py-10">
+          <div className="flex flex-wrap items-center gap-3">
+            <label className="text-xs uppercase tracking-widest text-slate-400">Fecha</label>
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white"
+            />
+            <button
+              onClick={() => closeCashRegister(selectedDate)}
+              disabled={closingInProgress || !!todayClosing}
+              className="rounded-full bg-[#d12a18] px-4 py-2 text-xs font-semibold uppercase tracking-widest text-white transition hover:bg-red-600 disabled:opacity-50"
+            >
+              {todayClosing ? 'Caja ya cerrada' : closingInProgress ? 'Cerrando...' : 'Cerrar caja de este día'}
+            </button>
+          </div>
+
+          {(ordersLoading || loading) && <p className="text-sm text-slate-400">Cargando...</p>}
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="rounded-2xl border border-white/10 bg-brand-900 p-5">
+              <p className="text-xs uppercase tracking-widest text-slate-400">Pedidos del día</p>
+              <p className="mt-2 text-2xl font-black">{ordersForSelectedDate.length}</p>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-brand-900 p-5">
+              <p className="text-xs uppercase tracking-widest text-slate-400">Monto recaudado</p>
+              <p className="mt-2 text-2xl font-black">{formatPrice(dayRevenue)}</p>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-brand-900 p-5">
+              <p className="text-xs uppercase tracking-widest text-slate-400">Método más usado</p>
+              <p className="mt-2 text-2xl font-black">{PAYMENT_METHOD_LABEL[topPaymentMethod ?? ''] ?? '—'}</p>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-brand-900 p-5">
+              <p className="text-xs uppercase tracking-widest text-slate-400">Estados</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {Object.entries(statusCounts).length === 0 ? (
+                  <span className="text-sm text-slate-500">Sin pedidos</span>
+                ) : (
+                  Object.entries(statusCounts).map(([status, count]) => (
+                    <span key={status} className="rounded-full bg-white/10 px-2.5 py-1 text-[11px]">
+                      {ORDER_STATUS_LABEL[status] ?? status}: {count}
+                    </span>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-2">
+            <div className="rounded-2xl border border-white/10 bg-brand-900 p-5">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <h2 className="text-sm font-semibold uppercase tracking-widest text-slate-300">Stock bajo</h2>
+                <div className="flex items-center gap-2 text-xs text-slate-400">
+                  <span>Umbral ≤</span>
+                  <input
+                    type="number"
+                    min={0}
+                    value={stockThreshold}
+                    onChange={(e) => updateThreshold(Math.max(0, parseInt(e.target.value, 10) || 0))}
+                    className="w-16 rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-white"
+                  />
+                </div>
+              </div>
+              {lowStockProducts.length === 0 ? (
+                <p className="text-sm text-slate-500">Ningún producto por debajo del umbral.</p>
+              ) : (
+                <div className="space-y-2">
+                  {lowStockProducts.map((p) => (
+                    <div key={p.id} className="flex items-center justify-between gap-3 rounded-xl bg-white/5 px-3 py-2 text-sm">
+                      <span className="truncate">{p.name} · <span className="text-red-400">stock: {p.stock}</span></span>
+                      <button
+                        onClick={() => toggleRestock(p)}
+                        disabled={restockActionId === p.id}
+                        className={`flex-shrink-0 rounded-full px-3 py-1 text-[11px] font-medium uppercase tracking-wide transition disabled:opacity-50 ${
+                          p.needsRestock ? 'bg-yellow-500/20 text-yellow-400' : 'bg-white/10 text-slate-300 hover:bg-white/20'
+                        }`}
+                      >
+                        {p.needsRestock ? 'Ya solicitado' : 'Solicitar reposición'}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-brand-900 p-5">
+              <h2 className="mb-3 text-sm font-semibold uppercase tracking-widest text-slate-300">Pendientes de compra</h2>
+              {restockProducts.length === 0 ? (
+                <p className="text-sm text-slate-500">No hay productos marcados para reponer.</p>
+              ) : (
+                <div className="space-y-2">
+                  {restockProducts.map((p) => (
+                    <div key={p.id} className="flex items-center justify-between gap-3 rounded-xl bg-white/5 px-3 py-2 text-sm">
+                      <span className="truncate">{p.name} · stock: {p.stock}</span>
+                      <button
+                        onClick={() => toggleRestock(p)}
+                        disabled={restockActionId === p.id}
+                        className="flex-shrink-0 rounded-full bg-green-500/15 px-3 py-1 text-[11px] font-medium uppercase tracking-wide text-green-400 transition hover:bg-green-500/25 disabled:opacity-50"
+                      >
+                        Marcar reabastecido
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-2">
+            <div className="rounded-2xl border border-white/10 bg-brand-900 p-5">
+              <h2 className="mb-3 text-sm font-semibold uppercase tracking-widest text-slate-300">Más vendidos</h2>
+              {bestSellers.length === 0 ? (
+                <p className="text-sm text-slate-500">Aún no hay ventas registradas.</p>
+              ) : (
+                <ol className="space-y-2 text-sm">
+                  {bestSellers.map(([name, qty], i) => (
+                    <li key={name} className="flex items-center justify-between">
+                      <span>{i + 1}. {name}</span>
+                      <span className="text-slate-400">{qty} vendidos</span>
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-brand-900 p-5">
+              <h2 className="mb-3 text-sm font-semibold uppercase tracking-widest text-slate-300">Historial de cierres</h2>
+              {closingsLoading ? (
+                <p className="text-sm text-slate-500">Cargando...</p>
+              ) : cashClosings.length === 0 ? (
+                <p className="text-sm text-slate-500">Aún no se ha cerrado caja.</p>
+              ) : (
+                <div className="space-y-2 text-sm">
+                  {cashClosings.map((c) => (
+                    <div key={c.id} className="flex items-center justify-between rounded-xl bg-white/5 px-3 py-2">
+                      <span>{c.date}</span>
+                      <span className="text-slate-400">{c.total_orders} pedidos · {formatPrice(c.total_amount)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Products list */}
       {tab === 'products' && (
@@ -613,11 +857,13 @@ export default function AdminPage() {
                       <p className="text-lg font-bold text-white">{formatPrice(o.total)}</p>
                       <span
                         className={`inline-block rounded-full px-3 py-1 text-[10px] font-medium uppercase tracking-wide ${
-                          o.status === 'confirmed'
-                            ? 'bg-green-500/15 text-green-400'
-                            : o.status === 'cancelled'
-                              ? 'bg-red-500/15 text-red-400'
-                              : 'bg-yellow-500/15 text-yellow-400'
+                          o.status === 'delivered'
+                            ? 'bg-blue-500/15 text-blue-400'
+                            : o.status === 'confirmed'
+                              ? 'bg-green-500/15 text-green-400'
+                              : o.status === 'cancelled'
+                                ? 'bg-red-500/15 text-red-400'
+                                : 'bg-yellow-500/15 text-yellow-400'
                         }`}
                       >
                         {ORDER_STATUS_LABEL[o.status] ?? o.status}
@@ -633,15 +879,26 @@ export default function AdminPage() {
                     ))}
                   </ul>
 
-                  {o.status !== 'confirmed' && o.status !== 'cancelled' && (
+                  {o.status !== 'delivered' && o.status !== 'cancelled' && (
                     <div className="mt-4 flex gap-2">
-                      <button
-                        onClick={() => setOrderStatus(o.id, 'confirmed')}
-                        disabled={orderActionId === o.id}
-                        className="rounded-full bg-green-500/15 px-3 py-1.5 text-xs font-medium uppercase tracking-wide text-green-400 transition hover:bg-green-500/25 disabled:opacity-50"
-                      >
-                        Confirmar
-                      </button>
+                      {o.status !== 'confirmed' && (
+                        <button
+                          onClick={() => setOrderStatus(o.id, 'confirmed')}
+                          disabled={orderActionId === o.id}
+                          className="rounded-full bg-green-500/15 px-3 py-1.5 text-xs font-medium uppercase tracking-wide text-green-400 transition hover:bg-green-500/25 disabled:opacity-50"
+                        >
+                          Confirmar
+                        </button>
+                      )}
+                      {o.status === 'confirmed' && (
+                        <button
+                          onClick={() => setOrderStatus(o.id, 'delivered')}
+                          disabled={orderActionId === o.id}
+                          className="rounded-full bg-blue-500/15 px-3 py-1.5 text-xs font-medium uppercase tracking-wide text-blue-400 transition hover:bg-blue-500/25 disabled:opacity-50"
+                        >
+                          Marcar entregado
+                        </button>
+                      )}
                       <button
                         onClick={() => setOrderStatus(o.id, 'cancelled')}
                         disabled={orderActionId === o.id}
