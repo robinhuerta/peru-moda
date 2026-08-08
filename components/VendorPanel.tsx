@@ -1,7 +1,9 @@
 import Image from 'next/image';
+import Link from 'next/link';
 
 type Vendor = {
   name: string;
+  slug: string;
   description: string;
   rating: number;
   sales: number;
@@ -34,9 +36,12 @@ export default function VendorPanel({ vendor }: { vendor: Vendor }) {
             {vendor.sales} ventas
           </span>
         </div>
-        <button className="w-full rounded-full bg-[#d12a18] px-5 py-3 text-sm font-semibold uppercase tracking-[0.15em] text-white transition hover:bg-red-600">
+        <Link
+          href={`/vendedores/${vendor.slug}`}
+          className="block w-full rounded-full bg-[#d12a18] px-5 py-3 text-center text-sm font-semibold uppercase tracking-[0.15em] text-white transition hover:bg-red-600"
+        >
           Ver tienda
-        </button>
+        </Link>
       </div>
     </article>
   );
