@@ -2,7 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import type { Product } from '@/components/ProductCard';
 
-export default function Hero({ products }: { products: Product[] }) {
+export default function Hero({ products, vendorCount }: { products: Product[]; vendorCount: number }) {
   const [featured, second, third] = products;
 
   return (
@@ -49,7 +49,7 @@ export default function Hero({ products }: { products: Product[] }) {
               <dd className="mt-1 text-xs uppercase tracking-[0.2em] text-ink/50">Modelos exclusivos</dd>
             </div>
             <div>
-              <dt className="text-2xl font-black text-ink sm:text-3xl">3</dt>
+              <dt className="text-2xl font-black text-ink sm:text-3xl">{vendorCount}+</dt>
               <dd className="mt-1 text-xs uppercase tracking-[0.2em] text-ink/50">Tiendas verificadas</dd>
             </div>
             <div>

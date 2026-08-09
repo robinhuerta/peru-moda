@@ -6,11 +6,14 @@ import { api } from '@/lib/api';
 export const revalidate = 30;
 
 export default async function CatalogPage() {
-  const products = await api.listProducts({ revalidate: 30 });
+  const [products, vendors] = await Promise.all([
+    api.listProducts({ revalidate: 30 }),
+    api.listVendors({ revalidate: 60 }).catch(() => []),
+  ]);
 
   return (
     <main className="min-h-screen bg-brand-950 text-ink">
-      <Hero products={products} />
+      <Hero products={products} vendorCount={vendors.length} />
       <LogoMarquee products={products} />
 
       <section id="catalogo" className="relative overflow-hidden px-6 pb-16 sm:px-10 lg:px-16">
