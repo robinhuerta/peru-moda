@@ -140,6 +140,24 @@ export default async function Footer() {
               <BookIcon />
               Libro de Reclamaciones
             </Link>
+            <div className="flex items-center gap-4 text-xs font-semibold text-ink/60">
+              <a
+                href={`https://wa.me/51${company.whatsapp}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="transition hover:text-[#d12a18]"
+              >
+                WhatsApp
+              </a>
+              <a
+                href={company.facebook}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="transition hover:text-[#d12a18]"
+              >
+                Facebook
+              </a>
+            </div>
           </div>
 
           <FooterColumn

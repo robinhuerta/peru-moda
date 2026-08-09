@@ -5,8 +5,8 @@ import { api, type CreateOrderPayload, type DeliveryMethod, type PaymentMethod }
 import { PERU_DEPARTMENTS } from '@/lib/peruLocations';
 
 const PAYMENT_INFO: Record<Exclude<PaymentMethod, 'cash'>, { label: string; detail: string }> = {
-  yape: { label: 'Yape', detail: '987 654 321 - Perú & Moda' },
-  plin: { label: 'Plin', detail: '987 654 321 - Perú & Moda' },
+  yape: { label: 'Yape', detail: '960 828 531 - Perú & Moda' },
+  plin: { label: 'Plin', detail: '960 828 531 - Perú & Moda' },
   transfer: { label: 'Transferencia bancaria', detail: 'BCP Cuenta Corriente 191-1234567-0-12' },
 };
 
